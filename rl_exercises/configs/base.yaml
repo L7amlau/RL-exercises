@@ -1,0 +1,21 @@
+defaults:
+  - agent: sb3
+
+hydra:
+  run:
+    dir: "${outpath}/${agent_name}/${env_name}/seed_${seed}"
+  sweep:
+    dir: "${outpath}/${agent_name}/${env_name}/seed_${seed}"
+  
+seed: 0
+training_steps: 1e5
+env_name: Pendulum-v1
+env_kwargs: {}
+agent_kwargs: {}
+eval_every_n_steps: 1000
+n_eval_episodes: 1
+outpath: "results"
+buffer_cls: SimpleBuffer
+buffer_kwargs: {}
+batch_size: 64
+update_after_episode_end: false

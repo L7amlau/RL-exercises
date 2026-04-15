@@ -1,0 +1,5 @@
+# @package _global_
+agent_class: PPO
+agent_name: sb3
+log_dir: results
+verbose: true

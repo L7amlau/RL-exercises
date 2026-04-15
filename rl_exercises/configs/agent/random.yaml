@@ -1,0 +1,4 @@
+# @package _global_
+agent: random
+agent_name: random_agent
+agent_class: RandomAgent

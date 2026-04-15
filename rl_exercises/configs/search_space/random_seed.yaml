@@ -1,0 +1,7 @@
+seed: 0
+hyperparameters:
+  seed:
+    type: uniform_int
+    lower: 0
+    upper: 500
+    log: false

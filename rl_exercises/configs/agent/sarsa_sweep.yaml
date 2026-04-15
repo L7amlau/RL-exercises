@@ -1,0 +1,70 @@
+
+# Defaults & plugin override
+defaults:
+  - _self_                             # Load this config file itself
+  - override hydra/sweeper: HyperRS    # Replace Hydra’s default sweeper with Hypersweeper’s RandomSearch
+
+
+
+
+# Global flags
+seed: 0                              # Seed for reproducibility (env, policy, etc.)
+n_trials: 5
+
+# Hydra output & sweeper settings
+hydra:
+  run:
+    dir: ./tmp/sarsa_rs              # Directory for single‐run outputs
+  sweep:
+    dir: ./tmp/sarsa_rs              # Directory where sweep results are stored
+  sweeper:
+    n_trials: ${n_trials}                      # Number of sampled configs (trials)
+    sweeper_kwargs:
+      max_parallelization: 0.8       # Fraction of trials to run in parallel (0.0–1.0)
+      max_budget: 10000              # Optional budget cap (if your sweeper supports it)
+    search_space: ${search_space}    # Reference to the `search_space` block below
+
+
+# Environment instantiation
+env:
+  _target_: rl_exercises.environments.MarsRover
+  transition_probabilities:          # 5×2 matrix of action‐success probabilities
+    - [1, 1]
+    - [1, 1]
+    - [1, 1]
+    - [1, 1]
+    - [1, 1]
+  rewards: [1, 0, 0, 0, 10]           # Reward per cell index
+  horizon: 10                        # Max steps per episode
+  seed: ${seed}                      # Pass same seed into the env constructor
+
+
+# Policy instantiation
+policy:
+  _target_: rl_exercises.week_3.EpsilonGreedyPolicy
+  epsilon: 0.1                       # Initial exploration rate (to be swept)
+  seed: ${seed}                      # Seed for the policy’s internal RNG
+
+
+# Agent instantiation
+agent:
+  _target_: rl_exercises.week_3.SARSAAgent
+  alpha: 0.1                         # Learning rate α (to be swept)
+  gamma: 0.99                        # Discount factor γ (kept fixed)
+
+
+# Hypersweeper search space
+search_space:
+  seed: ${seed}                      # Seed for the sweeper’s random number generator
+  hyperparameters:
+    # Sweep α over [0.01, 1.0]
+    agent.alpha:
+      type: uniform_float
+      lower: 0.01
+      upper: 1.0
+
+    # Sweep ε over [0.0, 1.0]
+    policy.epsilon:
+      type: uniform_float
+      lower: 0.0
+      upper: 1.0

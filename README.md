@@ -11,31 +11,32 @@ Each week, you'll have a task that corresponds to that week's lecture. Each task
 Apart from the levels, we will also link material of different sorts for each week. These are not mandatory, often go beyond the lecture and will not be the topic of your exams. There are two sorts of material we provide: academic material you can use as a reference to read deeper into a topic and guidance on practical aspects of RL. You can use both at your discretion, they are intended as resources in case you need to debug your method or possibly need a more advanced method in the first place.
 
 ## Repository Structure
-Each week's task and code stubs can be found in `rl_exercises`. This is where you code and where you should store the result for each week.
+Each week's task and code stubs can be found in `rl_exercises`. This is where you code and where you should store your result for each week (see the directories titled `week_<n>`). This directory also contains the file `train_agent.py`, which is used for training and evaluating agent. We will build these up in weeks 2-10 to contain all of the algorithms and options you implement. The script is what we use to test your code and generate results. 
+Lastly, there are some code templates in `agent` that you can take a look at, but likely will not need to.
 
-The `tests` directory contains all tests for all weeks in their respective subfolders. You can run all tests (though you probably never want to do that) using the command `make test` and the weekly tests with `make test-week-<week-id>`. This is what we use in the autograding as well.
+To use `train_agent.py`, you can either provide all options via the command line or take a look at `rl_exercises/configs`. There you'll find pre-configured scenarios for you to use. And also some of the arguments you can set. `base.yaml` contains general arguments with the `rl_exercise/configs/agent` directory provides you with the config options for each agent. 
 
-Lastly, in the root directory we have the files `train_agent.py` and `evaluate_agent.py`. We will build these up in weeks 2-10 to contain all of the algorithms and options you implement. These two scripts is what we use to test your code and generate results.
+For example once you implemented the value iteration in week 2, you can run your agent like this: 
+`python rl_exercises/train_agent.py agent=value_iteration`
+
+The `tests` directory contains all tests for all weeks in their respective subfolders. You can run all tests (though you probably never want to do that) using the command `make test` and the weekly tests with `make test-week-<week-id>`. Note that the tests are very sensitive to numpy versioning and thus often fail simply due to operating system differences. So if you're sure your solution is correct but the tests fail, it can also be a testing issue!
 
 ## Installation
 1. Clone this repository:
     * ``git clone https://github.com/automl-edu/RL-exercises.git``
-2. Install the uv package manager:
-    * ``pip install uv``
-3. Create a new environment:
+2. Install the uv package manager for Python:
+   * ``python install uv``
+3. Create a new virtual environment:
     * ``uv venv --python 3.11``
 4. Activate the new env:
     * ``source .venv/bin/activate``
 5. Install this repository:
     * ``make install``
 
-
-## Assignments
-For information on how to publish your solutions please see `ASSIGNMENTS.md`.
-
 ## Code Quality Hacks
 There are a few useful commands in this repository you should probably use.
-- `make format` will format all your code using the formatter and linter ruff. This will make both your and our experience better.
+- `make format` will format all your code using the formatter black. This will make both your and our experience better.
+- `make check-flake8` will run the linter flake8 that can show you simple style inconsistencies like trailing lines, syntax errors or issues like unused variables. Use it regularly to make sure your code quality stays high and you don't accidentally introduce errors.
 - `make check` will check your code for formatting, linting, typing and docstyle. We recommend running this from time to time. It will also be checked when you commit your code.
 
 ## Relevant Packages

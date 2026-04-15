@@ -6,6 +6,5 @@
 # Include individual files
 include LICENSE.txt
 include requirements.txt
-include rl_exercises/py.typed  # This file is to export types
+include rlsolutions/py.typed  # This file is to export types
 
-prune tests

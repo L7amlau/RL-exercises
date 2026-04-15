@@ -1,0 +1,38 @@
+# configs/agent/ppo.yaml
+# Hydra configuration for PPOAgent training by environment-step count.
+
+env:
+  # Gymnasium environment to train on
+  name: LunarLander-v3
+
+# Global random seed
+seed: 0
+
+agent:
+  # Learning rates
+  lr_actor: 5e-4     # actor step-size
+  lr_critic: 1e-3    # critic step-size
+
+  # Discount and GAE
+  gamma: 0.99
+  gae_lambda: 0.95
+
+  # PPO-specific
+  clip_eps: 0.2      # clipping epsilon for surrogate objective
+  epochs: 4          # number of epochs per update
+  batch_size: 64     # mini-batch size
+
+  # Regularization coefficients
+  ent_coef: 0.01     # entropy bonus weight
+  vf_coef: 0.5       # value-loss weight
+
+  # Network size
+  hidden_size: 128
+
+train:
+  # Total environment interactions to run
+  total_steps: 20000
+
+  # Evaluation settings
+  eval_interval: 10000  # evaluate every N steps
+  eval_episodes: 5      # episodes per evaluation
