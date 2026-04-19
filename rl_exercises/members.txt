@@ -1,3 +1,2 @@
-member 1: me
-member 2: 
-member 3: 
+member 1: Zehua Liu
+member 2: Jiang Xiao
