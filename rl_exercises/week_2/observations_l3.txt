@@ -1,0 +1,43 @@
+Week 2 - Level 3: Adding Context (Paper Connection)
+
+Reference
+Contextualize Me - The Case for Context in Reinforcement Learning
+Relevant parts: Abstract, Introduction, Section 2, Section 4, Section 6.2-6.4.
+
+Core idea from the paper
+A context c describes conditions under which dynamics and/or rewards vary.
+Train, validation, and test should be evaluated on separate context sets to measure generalization.
+
+Connection to MarsRover
+The stochastic MarsRover is already a simple cMDP candidate:
+- Context feature 1: transition execution probability p (slip/execution noise).
+- Context feature 2: reward scaling or goal reward (e.g., right goal 8/10/12).
+
+Observed results so far (without a full context split)
+1) Deterministic case (approximately p=1) with Policy Iteration
+- Very high and stable performance (Final eval reward 90.0 with 3 episodes).
+
+2) Stochastic case (p=0.5) with Value Iteration
+- Value function converged, but policy tie-breaking led to different policies across seeds.
+- With gamma=0.99 and 30 episodes:
+  seed 0: Final eval reward 18.3, Policy [1 1 1 0 0]
+  seed 1: Final eval reward 22.37, Policy [0 1 1 1 0]
+  seed 2: Final eval reward 25.4, Policy [1 0 0 0 0]
+- With gamma=0.5 and 30 episodes:
+  Final eval reward 25.5, Policy [1 1 1 0 0]
+
+Interpretation in relation to the paper
+- In uncertain contexts, several actions can be near-optimal; small differences (seed/tie-breaking) change the derived policy.
+- This is exactly why evaluation on a single environment/seed is not robust enough.
+- The paper's context-split perspective explains why we should train on specific contexts and validate/test on different ones.
+
+Recommended next concrete step for a Section-6.4-style setup
+1) Define context set C over p and reward_scale.
+2) Train contexts: e.g., p in {0.2, 0.4}, reward_scale in {1.0}.
+3) Validation contexts: e.g., p in {0.3}, reward_scale in {1.0}.
+4) Test contexts: e.g., p in {0.1, 0.5}, reward_scale in {0.8, 1.2}.
+5) Report mean and dispersion per split over multiple seeds.
+
+Conclusion
+The current Week 2 results are consistent with the paper's core message:
+context changes strongly affect generalization, so evaluation should be context-aware and split-based, not based on a single training configuration.

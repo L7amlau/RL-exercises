@@ -59,9 +59,16 @@ def train(cfg: DictConfig) -> float:
         return train_sb3(env, cfg)
     elif cfg.agent == "random":
         agent = RandomAgent(env)
+    elif cfg.agent == "policy_iteration":
+        agent = PolicyIteration(env, seed=cfg.seed, **cfg.agent_kwargs)
+    elif cfg.agent == "value_iteration":
+        agent = ValueIteration(env, seed=cfg.seed, **cfg.agent_kwargs)
     else:
-        # TODO: add your agent options here
-        raise NotImplementedError
+        raise NotImplementedError(f"Unknown agent: {cfg.agent}")
+
+    # Planning agents compute their policy from model dynamics once upfront.
+    if cfg.agent in {"policy_iteration", "value_iteration"}:
+        agent.update_agent()
 
     buffer_cls = eval(cfg.buffer_cls)
     buffer = buffer_cls(**cfg.buffer_kwargs)

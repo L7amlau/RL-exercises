@@ -1,0 +1,2 @@
+Christian Jesinghaus: I used OpenAI ChatGPT 5.3 Codex via VS Code Copilot for help with coding, questions concerning the paper and implementation, formatting and language in the handed in .txt files. 
+

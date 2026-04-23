@@ -1,5 +1,6 @@
 defaults:
   - agent: sb3
+  - _self_
 
 hydra:
   run:

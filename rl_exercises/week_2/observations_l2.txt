@@ -1,0 +1,29 @@
+Week 2 - Level 2: Decreasing Information Flow
+
+Question
+What happens if only step() is available (no explicit dynamics T and no reward function R)? Do Policy Iteration and Value Iteration still work?
+
+Short answer
+Policy Iteration and Value Iteration are model-based methods. They explicitly require T(s,a,s') and R(s,a).
+With only step() access, they do not work directly, but only indirectly via an estimated model (model learning).
+
+Observations from the runs
+1) Deterministic MarsRover with Policy Iteration
+- Converged policy: [1 1 1 1 1]
+- Final eval reward: 90.0 (with 3 eval episodes)
+- Interpretation: With a complete model, very good policies are found quickly.
+
+2) Stochastic MarsRover (0.5/0.5) with Value Iteration
+- Example policy (seed 0): [1 1 1 0 0]
+- Final eval reward: 3.0 (with 3 episodes), much more stable with 30 episodes
+- With 30 episodes and gamma=0.5: Final eval reward 25.5
+- With 30 episodes and gamma=0.99: Final eval reward in the range of about 18.3 to 25.4 (seeds 0,1,2)
+- Interpretation: In the stochastic setting and with few eval episodes, the estimate is highly noisy.
+
+Answer to the guiding question
+- Without model access, Policy Iteration and Value Iteration do not apply directly.
+- With only step(), T_hat and R_hat must first be estimated from data.
+- Then PI/VI can be applied to the estimated model (approximate planning).
+
+Conclusion
+The less information flow is available (samples instead of an exact model), the worse/more unstable classical planning becomes, and the more important data-driven or model-free methods become.
