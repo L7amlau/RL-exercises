@@ -18,7 +18,7 @@ Observed results so far (without a full context split)
 - Very high and stable performance (Final eval reward 90.0 with 3 episodes).
 
 2) Stochastic case (p=0.5) with Value Iteration
-- Value function converged, but policy tie-breaking led to different policies across seeds.
+- Value function coveraged, but due to near-optimal actions in the stochastic setting, the final policy depends on tie-breaking in Value Iteration. This leads to similar but different performing policies across runs with the same context.
 - With gamma=0.99 and 30 episodes:
   seed 0: Final eval reward 18.3, Policy [1 1 1 0 0]
   seed 1: Final eval reward 22.37, Policy [0 1 1 1 0]
@@ -28,7 +28,7 @@ Observed results so far (without a full context split)
 
 Interpretation in relation to the paper
 - In uncertain contexts, several actions can be near-optimal; small differences (seed/tie-breaking) change the derived policy.
-- This is exactly why evaluation on a single environment/seed is not robust enough.
+- This shows that evaluation on a single context is insufficient to evaluate generalization, since the paper emphasizes performance across a distribution of contexts.
 - The paper's context-split perspective explains why we should train on specific contexts and validate/test on different ones.
 
 Recommended next concrete step for a Section-6.4-style setup
