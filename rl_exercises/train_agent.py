@@ -22,7 +22,7 @@ from rl_exercises.agent.buffer import SimpleBuffer
 from rl_exercises.environments import MarsRover
 from rl_exercises.week_2.policy_iteration import PolicyIteration
 from rl_exercises.week_2.value_iteration import ValueIteration
-from rl_exercises.week_3 import EpsilonGreedyPolicy, TDAgent
+from rl_exercises.week_3 import EpsilonGreedyPolicy, RandomWalkTDEnv, TDAgent, TDLambdaAgent
 
 # from rl_exercises.week_4 import EpsilonGreedyPolicy as TabularEpsilonGreedyPolicy
 # from rl_exercises.week_4 import SARSAAgent
@@ -69,6 +69,11 @@ def train(cfg: DictConfig) -> float:
         epsilon = float(td_kwargs.pop("epsilon", 0.1))
         policy = EpsilonGreedyPolicy(env=env, epsilon=epsilon, seed=cfg.seed)
         agent = TDAgent(env=env, policy=policy, algorithm=cfg.agent, **td_kwargs)
+    elif cfg.agent == "td_lambda":
+        td_kwargs = dict(cfg.agent_kwargs)
+        epsilon = float(td_kwargs.pop("epsilon", 0.1))
+        policy = EpsilonGreedyPolicy(env=env, epsilon=epsilon, seed=cfg.seed)
+        agent = TDLambdaAgent(env=env, policy=policy, **td_kwargs)
     else:
         raise NotImplementedError(f"Unknown agent: {cfg.agent}")
 
@@ -224,6 +229,8 @@ def make_env(env_name: str, env_kwargs: dict = {}) -> gym.Env:
     if env_name == "MarsRover":
         env = MarsRover(**env_kwargs)
         # env = TimeLimit(env, max_episode_steps=env.horizon)
+    elif env_name == "RandomWalkTDEnv":
+        env = RandomWalkTDEnv(**env_kwargs)
     elif "MiniGrid" in env_name:
         env = gym.make(env_name, **env_kwargs)
         # env = RGBImgObsWrapper(env)
