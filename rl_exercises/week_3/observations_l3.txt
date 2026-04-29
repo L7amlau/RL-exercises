@@ -1,0 +1,21 @@
+Week 3 - Level 3 Observations: Connection to the TD(lambda) paper
+
+Paper context
+- Learning to Predict by the Methods of Temporal Differences (Sutton, 1988), Abstract + Sections 1-3.
+- Core ideas: bootstrapping, sample-based learning, and the speed/stability tradeoff in TD methods.
+
+Link to our experiments
+1) SARSA and Q-Learning show clear seed sensitivity and non-monotonic learning curves.
+2) Q-Learning often reaches high returns faster, but can still fail for some seeds.
+3) SARSA tends to be more conservative due to on-policy updates under exploration.
+
+Interpretation
+These behaviors are consistent with TD learning from sampled trajectories: updates are data-efficient but noisy and can be unstable depending on target definition and trajectory quality.
+
+Why TD(lambda) is the next step
+TD(lambda) adds eligibility traces and interpolates between short-horizon TD and longer-horizon returns. This can improve the tradeoff between fast learning and stability.
+
+Planned Level 3 procedure
+1) Implement a TD(lambda) agent in the same style as TDAgent.
+2) Compare SARSA, Q-Learning, and TD(lambda) under the same budget and seeds.
+3) Report both average return and seed variance, not just best-case runs.

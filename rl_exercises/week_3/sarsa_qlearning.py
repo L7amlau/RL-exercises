@@ -7,7 +7,7 @@ from collections import defaultdict
 import gymnasium as gym
 import numpy as np
 from rl_exercises.agent import AbstractAgent
-from rl_exercises.week_3 import EpsilonGreedyPolicy
+from rl_exercises.week_3.epsilon_greedy_policy import EpsilonGreedyPolicy
 
 State = Any
 
@@ -106,8 +106,8 @@ class TDAgent(AbstractAgent):
         """
         state, action, reward, next_state, done, _ = batch[0]
         if self.algorithm == "sarsa":
-            # TODO: Get the next action for the lookahead in SARSA using the policy of this agent.
-            next_action = 0
+            # On-policy lookahead action from this agent's current behavior policy.
+            next_action = self.policy(self.Q, next_state, evaluate=False)
             return self.SARSA(state, action, reward, next_state, next_action, done)
         else:
             return self.Q_Learning(state, action, reward, next_state, done)
@@ -145,13 +145,11 @@ class TDAgent(AbstractAgent):
             New Q value for the state action pair
         """
 
-        # SARSA update rule
-        # TODO: Implement the SARSA update rule here.
-        # Use a value of 0. for terminal states and
-        # update the new Q value in the Q table of this class.
-        # Return the new Q value --currently always returns 0.0
-
-        return 0.0
+        next_q = 0.0 if done else float(self.Q[next_state][next_action])
+        td_target = float(reward) + self.gamma * next_q
+        td_error = td_target - float(self.Q[state][action])
+        self.Q[state][action] += self.alpha * td_error
+        return float(self.Q[state][action])
 
     def Q_Learning(
         self,
@@ -183,7 +181,8 @@ class TDAgent(AbstractAgent):
             New Q value for the state action pair
         """
 
-        # Q learning update rule
-        # TODO: Implement the Q-Learning update rule here.
-
-        return 0.0
+        next_q = 0.0 if done else float(np.max(self.Q[next_state]))
+        td_target = float(reward) + self.gamma * next_q
+        td_error = td_target - float(self.Q[state][action])
+        self.Q[state][action] += self.alpha * td_error
+        return float(self.Q[state][action])

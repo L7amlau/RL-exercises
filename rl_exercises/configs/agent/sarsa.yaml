@@ -3,3 +3,7 @@ agent: sarsa
 agent_name: sarsa
 batch_size: 0
 training_steps: 15000
+agent_kwargs:
+  alpha: 0.1
+  gamma: 0.99
+  epsilon: 0.1
