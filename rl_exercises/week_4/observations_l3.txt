@@ -1,0 +1,15 @@
+Week 4 - Level 3 Observations
+
+In the Rainbow ablation, I compared four variants: base_dqn, dqn_per, dqn_double, and dqn_per_double (each with 5 seeds and 20000 frames).
+
+By IQM, dqn_per_double is slightly ahead (236.3), closely followed by base_dqn (232.7). dqn_per and dqn_double are below that.
+
+The important point is uncertainty: the 95% intervals overlap strongly. So with this budget, there is no clear statistically robust winner. PER alone and Double DQN alone do not show a stable advantage over base_dqn.
+
+Short conclusion: In this small setup, the Rainbow components do not give a clear consistent gain. Stronger conclusions would require more seeds and/or longer training.
+
+Artifacts:
+- results/week_4/l3/level3_metrics.csv
+- results/week_4/l3/level3_iqm_curves.png
+- results/week_4/l3/level3_final_interval_estimates.png
+- results/week_4/l3/level3_summary.csv

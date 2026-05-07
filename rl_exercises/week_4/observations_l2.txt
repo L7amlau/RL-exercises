@@ -1,0 +1,17 @@
+Week 4 - Level 2 Observations
+
+For Level 2, I evaluated the same base configuration across 5 seeds and aggregated the metrics with rliable.
+
+The key takeaway is that the spread across seeds is large (best 446.1, worst 192.4), so a single-seed conclusion would have been too optimistic. IQM is 232.7 (95% CI [196.67, 385.70]), which is more robust than looking at the mean alone.
+
+That mean and median are equal here is expected in this single-task setup with rliable. Overall, the results are more reliable than in Level 1 because uncertainty and variance are explicitly quantified.
+
+Short conclusion: Multi-seed evaluation plus CI and IQM gives a more realistic picture and increases confidence in the interpretation.
+
+Artifacts:
+- results/week_4/l2/level2_metrics_by_seed.csv
+- results/week_4/l2/level2_final_scores.csv
+- results/week_4/l2/level2_aggregate_summary.csv
+- results/week_4/l2/level2_iqm_sample_efficiency_curve.png
+- results/week_4/l2/level2_performance_profile.png
+- results/week_4/l2/level2_interval_estimates.png
