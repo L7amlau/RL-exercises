@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Iterable
+
+from pathlib import Path
 
 import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from rl_exercises.week_4.dqn import DQNAgent, set_seed
 from rliable import metrics
 from rliable.library import get_interval_estimates
 from rliable.plot_utils import (
@@ -14,8 +16,6 @@ from rliable.plot_utils import (
     plot_performance_profiles,
     plot_sample_efficiency_curve,
 )
-
-from rl_exercises.week_4.dqn import DQNAgent, set_seed
 
 # Level-1 best config used as base DQN for the seed study.
 CONFIG = {
@@ -194,7 +194,8 @@ def make_performance_profile_plot_with_rliable(
 ) -> None:
     """Create performance profile with rliable plot utilities."""
     normalized = np.clip(
-        final_scores["avg_reward_10"].to_numpy(dtype=float).reshape(-1, 1) / SOLVED_SCORE,
+        final_scores["avg_reward_10"].to_numpy(dtype=float).reshape(-1, 1)
+        / SOLVED_SCORE,
         0.0,
         1.0,
     )
@@ -204,7 +205,9 @@ def make_performance_profile_plot_with_rliable(
     profile_fn = lambda scores: np.array(  # noqa: E731
         [np.mean(scores > tau) for tau in tau_list]
     )
-    profile_points, profile_cis = get_interval_estimates(score_dict, profile_fn, reps=2000)
+    profile_points, profile_cis = get_interval_estimates(
+        score_dict, profile_fn, reps=2000
+    )
 
     _ = plot_performance_profiles(
         profile_points,
@@ -224,7 +227,8 @@ def make_interval_summary_plot_with_rliable(
 ) -> None:
     """Create interval estimate plot for mean/median/IQM/optimality gap."""
     normalized = np.clip(
-        final_scores["avg_reward_10"].to_numpy(dtype=float).reshape(-1, 1) / SOLVED_SCORE,
+        final_scores["avg_reward_10"].to_numpy(dtype=float).reshape(-1, 1)
+        / SOLVED_SCORE,
         0.0,
         1.0,
     )
@@ -275,7 +279,7 @@ Setup
 - Environment: {ENV_NAME}
 - Seeds: {list(seeds)}
 - Frames per seed: {NUM_FRAMES}
-- Base configuration: {CONFIG['name']} with hidden_dims={CONFIG['hidden_dims']}, buffer={CONFIG['buffer_capacity']}, batch={CONFIG['batch_size']}
+- Base configuration: {CONFIG["name"]} with hidden_dims={CONFIG["hidden_dims"]}, buffer={CONFIG["buffer_capacity"]}, batch={CONFIG["batch_size"]}
 
 Generated Artifacts
 - results/week_4/l2/level2_metrics_by_seed.csv
@@ -289,14 +293,14 @@ Aggregate Metrics (final avg_reward_10 over seeds)
 {metric_lines}
 
 Seed Spread (final avg_reward_10)
-- Best seed: {int(best_seed_row['seed'])} with score {best_seed_row['avg_reward_10']:.2f}
-- Worst seed: {int(worst_seed_row['seed'])} with score {worst_seed_row['avg_reward_10']:.2f}
-- Spread (best - worst): {(best_seed_row['avg_reward_10'] - worst_seed_row['avg_reward_10']):.2f}
+- Best seed: {int(best_seed_row["seed"])} with score {best_seed_row["avg_reward_10"]:.2f}
+- Worst seed: {int(worst_seed_row["seed"])} with score {worst_seed_row["avg_reward_10"]:.2f}
+- Spread (best - worst): {(best_seed_row["avg_reward_10"] - worst_seed_row["avg_reward_10"]):.2f}
 
 Discussion
 - Compared to a single-seed report, the multi-seed view reveals substantial variance and therefore lower certainty.
 - Mean alone can be influenced by outlier seeds; IQM provides a robust central tendency.
-- In this single-task setup, rliable aggregate_median equals aggregate_mean by definition.
+- In this single-task setup, mean and median are both computed across the five random seeds. They are not necessarily equal, and differences between them indicate how much the result is affected by special seeds.
 - The rliable performance profile shows how often the method exceeds different score thresholds, which is more informative than one point estimate.
 - rliable confidence intervals make uncertainty explicit, improving trustworthiness of conclusions.
 

@@ -1,15 +1,24 @@
-Week 4 - Level 3 Observations
+Week 4 - Level 3 Observations (Rainbow Ablation)
 
-In the Rainbow ablation, I compared four variants: base_dqn, dqn_per, dqn_double, and dqn_per_double (each with 5 seeds and 20000 frames).
+Setup
+- Environment: CartPole-v1
+- Seeds: [0, 1, 2, 3, 4]
+- Frames per run: 20000
+- Variants: ['base_dqn', 'dqn_per', 'dqn_double', 'dqn_per_double']
 
-By IQM, dqn_per_double is slightly ahead (236.3), closely followed by base_dqn (232.7). dqn_per and dqn_double are below that.
-
-The important point is uncertainty: the 95% intervals overlap strongly. So with this budget, there is no clear statistically robust winner. PER alone and Double DQN alone do not show a stable advantage over base_dqn.
-
-Short conclusion: In this small setup, the Rainbow components do not give a clear consistent gain. Stronger conclusions would require more seeds and/or longer training.
-
-Artifacts:
+Generated Artifacts
 - results/week_4/l3/level3_metrics.csv
 - results/week_4/l3/level3_iqm_curves.png
 - results/week_4/l3/level3_final_interval_estimates.png
 - results/week_4/l3/level3_summary.csv
+
+Ranking by IQM final score
+- dqn_double: IQM=231.37 (95% CI [214.90, 251.23])
+- dqn_per_double: IQM=210.53 (95% CI [147.00, 268.73])
+- base_dqn: IQM=208.80 (95% CI [193.63, 260.07])
+- dqn_per: IQM=202.07 (95% CI [166.23, 314.43])
+
+Discussion
+- Compare Base DQN vs DQN+PER vs DQN+DoubleDQN vs DQN+PER+DoubleDQN.
+- Check if PER improves sample-efficiency (curve shape) and if Double DQN improves stability.
+- Use the interval overlaps to judge whether gains are likely robust.

@@ -1,14 +1,20 @@
 Week 4 - Level 1 Observations
 
-I tested DQN on CartPole-v1 with one seed (0) and 20000 frames. I compared five configurations with different network sizes, replay buffer sizes, and batch sizes.
+Setup
+- Environment: CartPole-v1
+- Seed: 0
+- Frames: 20000
+- Configurations: 5 variants with different network sizes, replay buffer sizes, and batch sizes
 
-The best final result came from mlp_64x64_buf10k_bs32 with avg_reward_10 = 264.9. A larger batch size (64) was slightly faster early on, but dropped clearly at the end. A smaller replay buffer (5k instead of 10k) also reduced final performance.
-
-Larger or deeper networks were not automatically better. The 64x64x64 network reached high peaks, but was less stable.
-
-Conclusion: In this Level-1 setup, 64x64 with buffer 10k and batch size 32 is the most robust choice. However, these results are only a first indication because they are based on a single seed.
-
-Artifacts:
+Generated Artifacts
 - results/week_4/l1/level1_metrics.csv
 - results/week_4/l1/level1_training_curves.png
 - results/week_4/l1/level1_summary.csv
+
+Result
+- Best final configuration: mlp_128x128_buf10k_bs32 with avg_reward_10 = 302.1
+
+Discussion
+- Larger or deeper networks were not automatically better.
+- Some deeper models reached high peaks but were less stable.
+- Since this Level-1 experiment uses only one seed, the result should be interpreted as a first indication rather than a robust conclusion.

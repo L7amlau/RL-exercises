@@ -1,0 +1,6 @@
+config,frame,avg_reward_10
+mlp_128x128_buf10k_bs32,19856.0,302.1
+mlp_64x64_buf5k_bs32,19906.0,288.2
+mlp_64x64_buf10k_bs32,19967.0,224.0
+mlp_64x64_buf10k_bs64,19810.0,196.7
+mlp_64x64x64_buf10k_bs32,19933.0,138.2

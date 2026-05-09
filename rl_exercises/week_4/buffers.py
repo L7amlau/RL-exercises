@@ -138,7 +138,9 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         scaled = np.power(prios + self.eps, self.alpha)
         probs = scaled / np.sum(scaled)
 
-        idxs = np.random.choice(len(self.states), size=sample_size, replace=False, p=probs)
+        idxs = np.random.choice(
+            len(self.states), size=sample_size, replace=False, p=probs
+        )
         batch = [
             (
                 self.states[i],
@@ -153,7 +155,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
 
         n = len(self.states)
         weights = np.power(n * probs[idxs], -float(beta))
-        weights = weights / np.max(weights)
+        weights /= weights.max() + self.eps  # robust normalization
 
         return {
             "batch": batch,

@@ -6,11 +6,10 @@ import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from rl_exercises.week_4.dqn import DQNAgent, set_seed
 from rliable import metrics
 from rliable.library import get_interval_estimates
 from rliable.plot_utils import plot_interval_estimates, plot_sample_efficiency_curve
-
-from rl_exercises.week_4.dqn import DQNAgent, set_seed
 
 ENV_NAME = "CartPole-v1"
 NUM_FRAMES = 20000
@@ -84,7 +83,9 @@ def run_variant_seed(variant_name: str, variant_cfg: dict, seed: int) -> pd.Data
     return pd.DataFrame(rows)
 
 
-def interpolate_variant_curves(df: pd.DataFrame, frame_grid: np.ndarray) -> dict[str, np.ndarray]:
+def interpolate_variant_curves(
+    df: pd.DataFrame, frame_grid: np.ndarray
+) -> dict[str, np.ndarray]:
     out: dict[str, np.ndarray] = {}
     for variant, vg in df.groupby("variant"):
         seed_curves = []

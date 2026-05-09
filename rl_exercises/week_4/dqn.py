@@ -3,12 +3,12 @@ Deep Q-Learning implementation.
 """
 
 from typing import Any, Dict, List, Sequence, Tuple
+
 import importlib
 
 import gymnasium as gym
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.optim as optim
 from rl_exercises.agent import AbstractAgent
 from rl_exercises.week_4.buffers import PrioritizedReplayBuffer, ReplayBuffer
@@ -130,9 +130,11 @@ class DQNAgent(AbstractAgent):
         self.optimizer = optim.Adam(self.q.parameters(), lr=lr)
         self.use_prioritized_replay = bool(use_prioritized_replay)
         if self.use_prioritized_replay:
-            self.buffer: ReplayBuffer | PrioritizedReplayBuffer = PrioritizedReplayBuffer(
-                buffer_capacity,
-                alpha=prio_alpha,
+            self.buffer: ReplayBuffer | PrioritizedReplayBuffer = (
+                PrioritizedReplayBuffer(
+                    buffer_capacity,
+                    alpha=prio_alpha,
+                )
             )
         else:
             self.buffer = ReplayBuffer(buffer_capacity)
@@ -171,7 +173,10 @@ class DQNAgent(AbstractAgent):
         )
 
     def predict_action(
-        self, state: np.ndarray, info: Dict[str, Any] | None = None, evaluate: bool = False
+        self,
+        state: np.ndarray,
+        info: Dict[str, Any] | None = None,
+        evaluate: bool = False,
     ) -> int:
         """
         Choose action via ε‐greedy (or purely greedy in eval mode).
@@ -233,7 +238,8 @@ class DQNAgent(AbstractAgent):
         self.optimizer.load_state_dict(checkpoint["optimizer"])
 
     def update_agent(
-        self, training_batch: List[Tuple[Any, Any, float, Any, bool, Dict]] | Dict[str, Any]
+        self,
+        training_batch: List[Tuple[Any, Any, float, Any, bool, Dict]] | Dict[str, Any],
     ) -> float:
         """
         Perform one gradient update on a batch of transitions.
@@ -300,13 +306,15 @@ class DQNAgent(AbstractAgent):
             self.buffer.update_priorities(sample_indices, new_priorities)
 
         # occasionally sync target network
+        self.update_steps += 1
         if self.update_steps % self.target_update_freq == 0:
             self.target_q.load_state_dict(self.q.state_dict())
 
-        self.update_steps += 1
         return float(loss.item())
 
-    def train(self, num_frames: int, eval_interval: int = 1000) -> List[Dict[str, float]]:
+    def train(
+        self, num_frames: int, eval_interval: int = 1000
+    ) -> List[Dict[str, float]]:
         """
         Run a training loop for a fixed number of frames.
 
@@ -396,7 +404,9 @@ if hydra is not None:
             use_prioritized_replay=bool(cfg.agent.get("use_prioritized_replay", False)),
             prio_alpha=float(cfg.agent.get("prio_alpha", 0.6)),
             prio_beta_start=float(cfg.agent.get("prio_beta_start", 0.4)),
-            prio_beta_frames=int(cfg.agent.get("prio_beta_frames", cfg.train.num_frames)),
+            prio_beta_frames=int(
+                cfg.agent.get("prio_beta_frames", cfg.train.num_frames)
+            ),
             use_double_dqn=bool(cfg.agent.get("use_double_dqn", False)),
             seed=int(cfg.seed),
         )

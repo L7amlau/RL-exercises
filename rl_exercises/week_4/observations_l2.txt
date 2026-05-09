@@ -1,17 +1,36 @@
-Week 4 - Level 2 Observations
+Week 4 - Level 2 Observations (Multi-seed DQN Analysis)
 
-For Level 2, I evaluated the same base configuration across 5 seeds and aggregated the metrics with rliable.
+Setup
+- Environment: CartPole-v1
+- Seeds: [0, 1, 2, 3, 4]
+- Frames per seed: 20000
+- Base configuration: base_dqn_64x64_buf10k_bs32 with hidden_dims=[64, 64], buffer=10000, batch=32
 
-The key takeaway is that the spread across seeds is large (best 446.1, worst 192.4), so a single-seed conclusion would have been too optimistic. IQM is 232.7 (95% CI [196.67, 385.70]), which is more robust than looking at the mean alone.
-
-That mean and median are equal here is expected in this single-task setup with rliable. Overall, the results are more reliable than in Level 1 because uncertainty and variance are explicitly quantified.
-
-Short conclusion: Multi-seed evaluation plus CI and IQM gives a more realistic picture and increases confidence in the interpretation.
-
-Artifacts:
+Generated Artifacts
 - results/week_4/l2/level2_metrics_by_seed.csv
 - results/week_4/l2/level2_final_scores.csv
 - results/week_4/l2/level2_aggregate_summary.csv
 - results/week_4/l2/level2_iqm_sample_efficiency_curve.png
 - results/week_4/l2/level2_performance_profile.png
 - results/week_4/l2/level2_interval_estimates.png
+
+Aggregate Metrics (final avg_reward_10 over seeds)
+- mean_final_score: 219.36 (95% CI [196.66, 250.12])
+- median_final_score: 219.36 (95% CI [196.66, 250.12])
+- iqm_final_score: 208.80 (95% CI [193.63, 260.07])
+- mean_optimality_gap: 280.64 (95% CI [249.88, 303.34])
+
+Seed Spread (final avg_reward_10)
+- Best seed: 2 with score 278.10
+- Worst seed: 3 with score 192.30
+- Spread (best - worst): 85.80
+
+Discussion
+- Compared to a single-seed report, the multi-seed view reveals substantial variance and therefore lower certainty.
+- Mean alone can be influenced by outlier seeds; IQM provides a robust central tendency.
+- In this single-task setup, mean and median are both computed across the five random seeds. They are not necessarily equal, and differences between them indicate how much the result is affected by special seeds.
+- The rliable performance profile shows how often the method exceeds different score thresholds, which is more informative than one point estimate.
+- rliable confidence intervals make uncertainty explicit, improving trustworthiness of conclusions.
+
+Confidence Statement
+- I am more confident in these results than with single-seed reporting, because variance and uncertainty are quantified directly.

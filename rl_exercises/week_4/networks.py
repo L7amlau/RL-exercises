@@ -1,5 +1,6 @@
-from collections import OrderedDict
 from typing import Sequence
+
+from collections import OrderedDict
 
 import torch
 import torch.nn as nn
@@ -48,9 +49,7 @@ class QNetwork(nn.Module):
             in_dim = int(h)
         layers.append(("out", nn.Linear(in_dim, n_actions)))
 
-        self.net = nn.Sequential(
-            OrderedDict(layers)
-        )
+        self.net = nn.Sequential(OrderedDict(layers))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """

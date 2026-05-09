@@ -5,9 +5,7 @@ from pathlib import Path
 import gymnasium as gym
 import matplotlib.pyplot as plt
 import pandas as pd
-
 from rl_exercises.week_4.dqn import DQNAgent, set_seed
-
 
 EXPERIMENTS = [
     {
@@ -107,11 +105,44 @@ def plot_training_curves(df: pd.DataFrame, output_path: Path) -> None:
     plt.close()
 
 
+def write_observations(
+    output_path: Path, summary: pd.DataFrame, env: str, num_f: int, seed: int
+) -> None:
+    best_row = summary.iloc[0]
+
+    text = f"""Week 4 - Level 1 Observations
+
+Setup
+- Environment: {env}
+- Seed: {seed}
+- Frames: {num_f}
+- Configurations: {len(EXPERIMENTS)} variants with different network sizes, replay buffer sizes, and batch sizes
+
+Generated Artifacts
+- results/week_4/l1/level1_metrics.csv
+- results/week_4/l1/level1_training_curves.png
+- results/week_4/l1/level1_summary.csv
+
+Result
+- Best final configuration: {best_row["config"]} with avg_reward_10 = {best_row["avg_reward_10"]:.1f}
+
+Discussion
+- Larger or deeper networks were not automatically better.
+- Some deeper models reached high peaks but were less stable.
+- Since this Level-1 experiment uses only one seed, the result should be interpreted as a first indication rather than a robust conclusion.
+"""
+
+    output_path.write_text(text, encoding="utf-8")
+
+
 def main() -> None:
     results_dir = Path("results/week_4/l1")
     results_dir.mkdir(parents=True, exist_ok=True)
 
-    df = run_experiments(env_name="CartPole-v1", num_frames=20000, seed=0)
+    env = "CartPole-v1"
+    num_f = 20000
+    seed = 0
+    df = run_experiments(env_name=env, num_frames=num_f, seed=seed)
 
     csv_path = results_dir / "level1_metrics.csv"
     fig_path = results_dir / "level1_training_curves.png"
@@ -128,10 +159,16 @@ def main() -> None:
     summary_path = results_dir / "level1_summary.csv"
     summary.to_csv(summary_path, index=False)
 
+    obsv_path = Path("rl_exercises/week_4/observations_l1.txt")
+    write_observations(
+        output_path=obsv_path, summary=summary, env=env, num_f=num_f, seed=seed
+    )
+
     print("\nSaved:")
     print(csv_path)
     print(fig_path)
     print(summary_path)
+    print(obsv_path)
 
 
 if __name__ == "__main__":
