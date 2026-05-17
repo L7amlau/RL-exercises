@@ -145,6 +145,8 @@ results/*
 # but keep week_4 experiment artifacts
 !results/week_4/
 !results/week_4/**
+!results/week_5/
+!results/week_5/**
 
 # macOS
 .DS_Store

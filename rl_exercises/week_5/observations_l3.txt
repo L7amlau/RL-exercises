@@ -1,0 +1,5 @@
+We implemented a basic DDPG agent and evaluated it on Pendulum-v1 with 5 random seeds. Unlike REINFORCE, DDPG is designed for continuous action spaces, so we used Pendulum-v1 instead of CartPole-v1 for this experiment.
+
+The implementation includes actor & critic networks, a replay buffer, and target networks with soft updates. The target networks help stabilize the critic target, and the replay buffer reduces correlation between samples.
+
+We use 5 random seeds to evaluate the agent and use RLiable to plot the mean evaluation return with a 95% CI. Compared to REINFORCE, DDPG shows a higher efficiency on sampling because it learns from replayed experiences. However, training was less stable and results are very varied between seeds.
