@@ -35,3 +35,12 @@ If you want to solve Level 3, these are your ToDos:
 - implement TD($\lambda$) similarly to SARSA and Q-Learning in a new agent
 - choose and example setting from the paper and implement it as an environment
 - try and recreate the paper's results. Do the match your observations? Document it in a `observations_l3.txt` file
+
+You can run the implemented TD($\lambda$) setup with:
+```bash
+# paper-inspired random walk setup
+python rl_exercises/train_agent.py +exercise=w3_td_lambda
+
+# TD(lambda) on MarsRover for direct comparison to SARSA/Q-learning
+python rl_exercises/train_agent.py agent=td_lambda env_name=MarsRover
+```

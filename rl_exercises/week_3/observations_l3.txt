@@ -1,0 +1,32 @@
+Week 3 - Level 3 Observations: TD(lambda) and paper connection
+
+Paper context
+- Learning to Predict by the Methods of Temporal Differences (Sutton, 1988), Abstract + Sections 1-3.
+- Main ideas used here: bootstrapping, sample-based learning, and the speed/stability tradeoff.
+
+Implemented for Level 3
+1) TD(lambda) control agent with eligibility traces.
+2) Paper-inspired RandomWalkTDEnv example.
+3) TD(lambda) evaluation on MarsRover for direct comparison to SARSA/Q-Learning.
+
+Results
+1) RandomWalkTDEnv (exercise w3_td_lambda)
+- Final eval reward: 0.0
+- Interpretation: in this reward setup, the agent converged to a low-return behavior (left terminal with zero reward), so no useful positive return was learned.
+
+2) MarsRover with TD(lambda), seeds 0/1/2
+- Final eval rewards: 90.0, 90.0, 90.0
+- Mean: 90.0
+
+Comparison to Level 2 runs (same budget)
+- SARSA mean final reward: 49.67
+- Q-Learning mean final reward: 63.00
+- TD(lambda) mean final reward: 90.00
+
+Interpretation in paper terms
+- TD(lambda) combines short-horizon TD updates with longer-horizon credit assignment via traces.
+- In our control task (MarsRover), this improved both performance and cross-seed stability compared to SARSA and Q-Learning.
+- The RandomWalk result also illustrates that environment/reward design matters strongly for TD methods; with sparse/asymmetric rewards, learning can collapse to suboptimal attractors.
+
+Conclusion
+Our Week 3 experiments support the paper's core message: TD methods are data-efficient but sensitive to update targets and reward structure. In this setup, TD(lambda) gave the best practical tradeoff on MarsRover.
