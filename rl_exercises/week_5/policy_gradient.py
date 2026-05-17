@@ -319,6 +319,13 @@ class REINFORCEAgent(AbstractAgent):
             Frequency of evaluation prints (default is 10).
         """
         eval_env = gym.make(self.env.spec.id)  # fresh copy for eval
+
+        if self.env.spec.max_episode_steps is not None:
+            eval_env = gym.wrappers.TimeLimit(
+                eval_env,
+                max_episode_steps=self.env.spec.max_episode_steps,
+            )
+
         for ep in range(1, num_episodes + 1):
             state, _ = self.env.reset()
             done = False
@@ -372,6 +379,9 @@ def main(cfg: DictConfig) -> None:
     print(f"config: {cfg}")
     env = gym.make(cfg.env.name)
     set_seed(env, cfg.seed)
+
+    if "max_episode_steps" in cfg.env:
+        env = gym.wrappers.TimeLimit(env, max_episode_steps=cfg.env.max_episode_steps)
 
     # Instantiate agent with hyperparameters from config
     agent = REINFORCEAgent(
