@@ -1,0 +1,24 @@
+Week 4 - Level 3 Observations (Rainbow Ablation)
+
+Setup
+- Environment: CartPole-v1
+- Seeds: [0, 1, 2, 3, 4]
+- Frames per run: 20000
+- Variants: ['base_dqn', 'dqn_per', 'dqn_double', 'dqn_per_double']
+
+Generated Artifacts
+- results/week_4/l3/level3_metrics.csv
+- results/week_4/l3/level3_iqm_curves.png
+- results/week_4/l3/level3_final_interval_estimates.png
+- results/week_4/l3/level3_summary.csv
+
+Ranking by IQM final score
+- dqn_double: IQM=231.37 (95% CI [214.90, 251.23])
+- dqn_per_double: IQM=210.53 (95% CI [147.00, 268.73])
+- base_dqn: IQM=208.80 (95% CI [193.63, 260.07])
+- dqn_per: IQM=202.07 (95% CI [166.23, 314.43])
+
+Discussion
+- Compare Base DQN vs DQN+PER vs DQN+DoubleDQN vs DQN+PER+DoubleDQN.
+- Check if PER improves sample-efficiency (curve shape) and if Double DQN improves stability.
+- Use the interval overlaps to judge whether gains are likely robust.

@@ -140,4 +140,20 @@ tmp*
 rl_exercises/week_2/figures/mars_rover.png
 
 # Results
-results/
+results/*
+
+# but keep week_4 experiment artifacts
+!results/week_4/
+!results/week_4/**
+!results/week_5/
+!results/week_5/**
+
+# macOS
+.DS_Store
+
+# editor
+.vscode/
+
+# personal scripts
+plot_reliable.py
+week_3_script.nu

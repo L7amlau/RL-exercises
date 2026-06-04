@@ -1,0 +1,20 @@
+Week 4 - Level 1 Observations
+
+Setup
+- Environment: CartPole-v1
+- Seed: 0
+- Frames: 20000
+- Configurations: 5 variants with different network sizes, replay buffer sizes, and batch sizes
+
+Generated Artifacts
+- results/week_4/l1/level1_metrics.csv
+- results/week_4/l1/level1_training_curves.png
+- results/week_4/l1/level1_summary.csv
+
+Result
+- Best final configuration: mlp_128x128_buf10k_bs32 with avg_reward_10 = 302.1
+
+Discussion
+- Larger or deeper networks were not automatically better.
+- Some deeper models reached high peaks but were less stable.
+- Since this Level-1 experiment uses only one seed, the result should be interpreted as a first indication rather than a robust conclusion.
