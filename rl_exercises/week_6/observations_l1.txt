@@ -2,29 +2,29 @@ Week 6 - Level 1 Observations (Actor-Critic Baselines)
 
 Setup
 - Baselines: ['none', 'avg', 'value', 'gae']
-- Seeds: [0]
-- CartPole-v1: total_steps=1200, eval_interval=200, lr_actor=0.0005, lr_critic=0.001, gamma=0.99, gae_lambda=0.95
-- LunarLander-v3: total_steps=1200, eval_interval=200, lr_actor=0.0003, lr_critic=0.001, gamma=0.99, gae_lambda=0.95
+- Seeds: [0, 1, 2]
+- CartPole-v1: total_steps=200000, eval_interval=10000, lr_actor=0.0005, lr_critic=0.001, gamma=0.99, gae_lambda=0.95
+- LunarLander-v3: total_steps=200000, eval_interval=10000, lr_actor=0.005, lr_critic=0.01, gamma=0.99, gae_lambda=0.95
 
 Generated Artifacts
-- rl_exercises/week_6/l1_artifacts/level1_metrics.csv
-- rl_exercises/week_6/l1_artifacts/level1_final_summary.csv
-- rl_exercises/week_6/l1_artifacts/CartPole_v1_sample_efficiency.png
-- rl_exercises/week_6/l1_artifacts/LunarLander_v3_sample_efficiency.png
+- results/week_6/l1/level1_metrics.csv
+- results/week_6/l1/level1_final_summary.csv
+- results/week_6/l1/CartPole_v1_sample_efficiency.png
+- results/week_6/l1/LunarLander_v3_sample_efficiency.png
 
 Final-Return Summary (95% CI via rliable)
 - CartPole-v1:
-  none: mean=10.00, CI95=[10.00, 10.00], std=0.00, n_seeds=1
-  avg: mean=10.00, CI95=[10.00, 10.00], std=0.00, n_seeds=1
-  value: mean=10.00, CI95=[10.00, 10.00], std=0.00, n_seeds=1
-  gae: mean=10.00, CI95=[10.00, 10.00], std=0.00, n_seeds=1
-  Best baseline: none (mean 10.00), worst baseline: gae (mean 10.00).
+  value: mean=497.73, CI95=[493.20, 500.00], std=3.21, n_seeds=3
+  avg: mean=494.27, CI95=[482.80, 500.00], std=8.11, n_seeds=3
+  none: mean=494.20, CI95=[482.60, 500.00], std=8.20, n_seeds=3
+  gae: mean=381.73, CI95=[233.60, 491.20], std=108.66, n_seeds=3
+  Best baseline: value (mean 497.73), worst baseline: gae (mean 381.73).
 - LunarLander-v3:
-  gae: mean=-196.70, CI95=[-196.70, -196.70], std=0.00, n_seeds=1
-  none: mean=-371.33, CI95=[-371.33, -371.33], std=0.00, n_seeds=1
-  avg: mean=-371.33, CI95=[-371.33, -371.33], std=0.00, n_seeds=1
-  value: mean=-433.16, CI95=[-433.16, -433.16], std=0.00, n_seeds=1
-  Best baseline: gae (mean -196.70), worst baseline: value (mean -433.16).
+  none: mean=-27.10, CI95=[-46.40, -13.54], std=14.01, n_seeds=3
+  value: mean=-70.01, CI95=[-88.63, -49.14], std=16.20, n_seeds=3
+  avg: mean=-77.69, CI95=[-88.93, -68.74], std=8.40, n_seeds=3
+  gae: mean=-130.12, CI95=[-157.35, -104.46], std=21.62, n_seeds=3
+  Best baseline: none (mean -27.10), worst baseline: gae (mean -130.12).
 
 Interpretation
 - In general, value-based baselines (value/gae) reduce policy-gradient variance compared to no baseline, which often improves learning stability.

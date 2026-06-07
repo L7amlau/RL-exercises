@@ -144,7 +144,7 @@ class ActorCriticAgent(AbstractAgent):
         elif self.baseline_type == "avg":
             ret = self.compute_returns(list(rewards))
             adv = ret - self.running_return
-            adv = (adv - adv.mean()) / (adv.std(unbiased=False) + 1e-8)
+            adv = adv / (adv.std(unbiased=False) + 1e-8)
             self.running_return = (
                 self.baseline_decay * self.running_return
                 + (1.0 - self.baseline_decay) * ret.mean().item()

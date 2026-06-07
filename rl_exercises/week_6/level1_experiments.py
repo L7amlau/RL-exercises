@@ -8,11 +8,10 @@ import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from rliable import metrics
+from matplotlib.lines import Line2D
+from rl_exercises.week_6.actor_critic import ActorCriticAgent, set_seed
 from rliable.library import get_interval_estimates
 from rliable.plot_utils import plot_sample_efficiency_curve
-
-from rl_exercises.week_6.actor_critic import ActorCriticAgent, set_seed
 
 BASELINES = ["none", "avg", "value", "gae"]
 
@@ -145,26 +144,40 @@ def make_sample_efficiency_plot(
     if not score_dict:
         return
 
+    step_grid_k = step_grid / 1000
+
     mean_over_time = lambda scores: np.array(  # noqa: E731
         [np.mean(scores[:, i]) for i in range(scores.shape[1])]
     )
-    mean_scores, mean_cis = get_interval_estimates(score_dict, mean_over_time, reps=2000)
+    mean_scores, mean_cis = get_interval_estimates(
+        score_dict, mean_over_time, reps=2000
+    )
 
-    _ = plot_sample_efficiency_curve(
-        step_grid,
+    ax = plot_sample_efficiency_curve(
+        step_grid_k,
         mean_scores,
         mean_cis,
         algorithms=list(score_dict.keys()),
-        xlabel="Environment Steps",
+        xlabel="Environment Steps (×1k)",
         ylabel="Average Return",
     )
+    handles, labels = ax.get_legend_handles_labels()
+    line_handles = [
+        handle for handle, label in zip(handles, labels) if isinstance(handle, Line2D)
+    ]
+    line_labels = [
+        label for handle, label in zip(handles, labels) if isinstance(handle, Line2D)
+    ]
+    ax.legend(line_handles, line_labels, loc="best")
     plt.title(f"Week 6 L1 - {env_name} Baseline Comparison")
     plt.tight_layout()
-    plt.savefig(output_path, dpi=150)
+    plt.savefig(output_path, dpi=150, bbox_inches="tight")
     plt.close()
 
 
-def summarize_final_scores_with_ci(df: pd.DataFrame, baselines: list[str]) -> pd.DataFrame:
+def summarize_final_scores_with_ci(
+    df: pd.DataFrame, baselines: list[str]
+) -> pd.DataFrame:
     rows: list[dict] = []
 
     for env_name, env_df in df.groupby("env"):
@@ -273,7 +286,7 @@ def write_observations(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Week 6 Level 1 baseline experiments")
-    parser.add_argument("--seeds", type=int, nargs="+", default=[0, 1])
+    parser.add_argument("--seeds", type=int, nargs="+", default=[0, 1, 2])
     parser.add_argument("--eval-episodes", type=int, default=5)
     parser.add_argument("--results-dir", type=str, default="results/week_6/l1")
     parser.add_argument(
@@ -282,10 +295,10 @@ def parse_args() -> argparse.Namespace:
         default="rl_exercises/week_6/observations_l1.txt",
     )
 
-    parser.add_argument("--cartpole-steps", type=int, default=20000)
-    parser.add_argument("--cartpole-eval-interval", type=int, default=1000)
-    parser.add_argument("--lunar-steps", type=int, default=30000)
-    parser.add_argument("--lunar-eval-interval", type=int, default=2000)
+    parser.add_argument("--cartpole-steps", type=int, default=200000)
+    parser.add_argument("--cartpole-eval-interval", type=int, default=10000)
+    parser.add_argument("--lunar-steps", type=int, default=200000)
+    parser.add_argument("--lunar-eval-interval", type=int, default=10000)
     return parser.parse_args()
 
 
@@ -303,8 +316,8 @@ def main() -> None:
         "LunarLander-v3": EnvRunConfig(
             total_steps=args.lunar_steps,
             eval_interval=args.lunar_eval_interval,
-            lr_actor=3e-4,
-            lr_critic=1e-3,
+            lr_actor=5e-3,
+            lr_critic=1e-2,
         ),
     }
 
