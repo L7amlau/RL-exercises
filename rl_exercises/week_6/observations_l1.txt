@@ -1,0 +1,33 @@
+Week 6 - Level 1 Observations (Actor-Critic Baselines)
+
+Setup
+- Baselines: ['none', 'avg', 'value', 'gae']
+- Seeds: [0, 1, 2]
+- CartPole-v1: total_steps=200000, eval_interval=10000, lr_actor=0.0005, lr_critic=0.001, gamma=0.99, gae_lambda=0.95
+- LunarLander-v3: total_steps=200000, eval_interval=10000, lr_actor=0.005, lr_critic=0.01, gamma=0.99, gae_lambda=0.95
+
+Generated Artifacts
+- results/week_6/l1/level1_metrics.csv
+- results/week_6/l1/level1_final_summary.csv
+- results/week_6/l1/CartPole_v1_sample_efficiency.png
+- results/week_6/l1/LunarLander_v3_sample_efficiency.png
+
+Final-Return Summary (95% CI via rliable)
+- CartPole-v1:
+  value: mean=497.73, CI95=[493.20, 500.00], std=3.21, n_seeds=3
+  avg: mean=494.27, CI95=[482.80, 500.00], std=8.11, n_seeds=3
+  none: mean=494.20, CI95=[482.60, 500.00], std=8.20, n_seeds=3
+  gae: mean=381.73, CI95=[233.60, 491.20], std=108.66, n_seeds=3
+  Best baseline: value (mean 497.73), worst baseline: gae (mean 381.73).
+- LunarLander-v3:
+  none: mean=-27.10, CI95=[-46.40, -13.54], std=14.01, n_seeds=3
+  value: mean=-70.01, CI95=[-88.63, -49.14], std=16.20, n_seeds=3
+  avg: mean=-77.69, CI95=[-88.93, -68.74], std=8.40, n_seeds=3
+  gae: mean=-130.12, CI95=[-157.35, -104.46], std=21.62, n_seeds=3
+  Best baseline: none (mean -27.10), worst baseline: gae (mean -130.12).
+
+Interpretation
+- In general, value-based baselines (value/gae) reduce policy-gradient variance compared to no baseline, which often improves learning stability.
+- GAE usually provides a favorable bias-variance trade-off: lower variance than Monte-Carlo returns while keeping less bias than very short-horizon TD estimates.
+- The running-average baseline (avg) can help versus none, but it ignores state-dependent structure and is therefore typically weaker than learned value baselines.
+- Confidence intervals still overlap in parts of training, so differences should be interpreted as trends rather than strict dominance.

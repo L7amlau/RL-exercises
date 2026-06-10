@@ -9,6 +9,7 @@ from typing import Any, List, Tuple
 import gymnasium as gym
 import numpy as np
 import torch
+import torch.nn.functional as F
 import torch.optim as optim
 from torch.distributions import Categorical
 
@@ -55,6 +56,9 @@ class PPOAgent(AbstractAgent):
         vf_coef: float = 0.5,
         seed: int = 0,
         hidden_size: int = 128,
+        max_grad_norm: float = 0.5,
+        use_lr_annealing: bool = True,
+        use_grad_clip: bool = True,
     ) -> None:
         set_seed(env, seed)
         self.seed = seed
@@ -66,7 +70,11 @@ class PPOAgent(AbstractAgent):
         self.batch_size = batch_size
         self.ent_coef = ent_coef
         self.vf_coef = vf_coef
-
+        self.max_grad_norm = max_grad_norm
+        self.use_lr_annealing = use_lr_annealing
+        self.use_grad_clip = use_grad_clip
+        self.lr_actor = lr_actor
+        self.lr_critic = lr_critic
         # networks
         self.policy = Policy(env.observation_space, env.action_space, hidden_size)
         self.value_fn = ValueNetwork(env.observation_space, hidden_size)
@@ -97,11 +105,25 @@ class PPOAgent(AbstractAgent):
         self,
         rewards: List[float],
         values: torch.Tensor,
-        next_values: torch.Tensor,  # noqa: F841
+        next_values: torch.Tensor,
         dones: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        # TODO: compute advantages using GAE (Hint: replicate the GAE formula from actor critic)
-        return None  # template placeholder
+        rewards_t = torch.tensor(rewards, dtype=torch.float32)
+        deltas = rewards_t + self.gamma * next_values * (1.0 - dones) - values
+
+        gae = 0.0
+        advantages = []
+        for t in reversed(range(len(rewards))):
+            gae = deltas[t] + self.gamma * self.gae_lambda * (1.0 - dones[t]) * gae
+            advantages.insert(0, gae)
+
+        advantages_t = torch.stack(advantages)
+        returns = advantages_t + values
+        advantages_t = (advantages_t - advantages_t.mean()) / (
+            advantages_t.std(unbiased=False) + 1e-8
+        )
+
+        return advantages_t.detach(), returns.detach()
 
     def update(self, trajectory: List[Any]) -> None:
         # unpack trajectory
@@ -112,13 +134,11 @@ class PPOAgent(AbstractAgent):
         rewards = [t[4] for t in trajectory]
         dones = torch.tensor([t[5] for t in trajectory], dtype=torch.float32)
 
-        # TODO: compute values and next_values without gradients
-        values = ...  # noqa: F841  # template placeholder
-        next_values = ...  # noqa: F841  # template placeholder
+        next_states = torch.stack([torch.from_numpy(t[6]).float() for t in trajectory])
 
-        # TODO: compute advantages and returns
-        advantages = ...  # template placeholder
-        returns = ...  # template placeholder
+        with torch.no_grad():
+            values = self.value_fn(states).squeeze(-1)
+            next_values = self.value_fn(next_states).squeeze(-1)
 
         advantages, returns = self.compute_gae(rewards, values, next_values, dones)
 
@@ -131,21 +151,23 @@ class PPOAgent(AbstractAgent):
 
         for _ in range(self.epochs):
             for b_states, b_actions, b_oldlogp, b_adv, b_ret in loader:
-                # TODO: compute policy loss, value loss, and entropy loss
+                probs = self.policy(b_states)
+                dist = Categorical(probs)
+                new_logp = dist.log_prob(b_actions)
+                entropy = dist.entropy()
 
-                # TODO: compute new log probabilities by sampling actions from the policy distribution
-                new_logp = ...  # noqa: F841  # template placeholder
+                ratio = torch.exp(new_logp - b_oldlogp)
 
-                # TODO: compute the ratio of new log probabilities to old log probabilities
+                surr1 = ratio * b_adv
+                surr2 = (
+                    torch.clamp(ratio, 1.0 - self.clip_eps, 1.0 + self.clip_eps) * b_adv
+                )
+                policy_loss = -torch.min(surr1, surr2).mean()
 
-                # TODO: compute the clipped surrogate loss using the clipped objective
-                policy_loss = ...  # template placeholder
+                values = self.value_fn(b_states).reshape(-1)
+                value_loss = F.mse_loss(values, b_ret.reshape(-1))
 
-                # TODO: compute value loss using mean squared error
-                value_loss = ...  # template placeholder
-
-                # TODO: compute entropy loss using the distribution's entropy
-                entropy_loss = ...  # template placeholder
+                entropy_loss = -entropy.mean()
 
                 loss = (
                     policy_loss
@@ -154,6 +176,12 @@ class PPOAgent(AbstractAgent):
                 )
                 self.optimizer.zero_grad()
                 loss.backward()
+                if self.use_grad_clip:
+                    torch.nn.utils.clip_grad_norm_(
+                        list(self.policy.parameters())
+                        + list(self.value_fn.parameters()),
+                        self.max_grad_norm,
+                    )
                 self.optimizer.step()
 
         return policy_loss.item(), value_loss.item(), entropy_loss.item()
@@ -187,7 +215,17 @@ class PPOAgent(AbstractAgent):
                         f"[Eval ] Step {step_count:6d} AvgReturn {mean_r:5.1f} ± {std_r:4.1f}"
                     )
 
-            # PPO update
+            # linear lr annealing
+            if self.use_lr_annealing:
+                progress = step_count / total_steps
+                new_lr_actor = self.lr_actor * (1.0 - progress)
+                new_lr_critic = self.lr_critic * (1.0 - progress)
+                for pg in self.optimizer.param_groups:
+                    if pg["params"] == list(self.policy.parameters()):
+                        pg["lr"] = new_lr_actor
+                    else:
+                        pg["lr"] = new_lr_critic
+
             policy_loss, value_loss, entropy_loss = self.update(trajectory)
             total_return = sum(t[4] for t in trajectory)
             print(
@@ -230,6 +268,9 @@ def main(cfg: DictConfig) -> None:
         vf_coef=cfg.agent.vf_coef,
         seed=cfg.seed,
         hidden_size=cfg.agent.hidden_size,
+        max_grad_norm=cfg.agent.get("max_grad_norm", 0.5),
+        use_lr_annealing=cfg.agent.get("use_lr_annealing", True),
+        use_grad_clip=cfg.agent.get("use_grad_clip", True),
     )
     agent.train(
         cfg.train.total_steps,

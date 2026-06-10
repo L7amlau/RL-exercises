@@ -86,16 +86,16 @@ class ActorCriticAgent(AbstractAgent):
     def compute_advantages(
         self, states: List[np.ndarray], rewards: List[float]
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        # TODO: convert rewards into discounted returns
+        returns = self.compute_returns(rewards)
+        states_t = torch.stack([torch.from_numpy(s).float() for s in states])
+        values = self.value_fn(states_t).squeeze(-1)
 
-        # TODO: convert states list into a torch batch and compute state-values
+        advantages = returns - values
+        advantages = (advantages - advantages.mean()) / (
+            advantages.std(unbiased=False) + 1e-8
+        )
 
-        # TODO: compute raw advantages = returns - values
-
-        # TODO: normalize advantages to zero mean and unit variance and use 1e-8 for numerical stability
-
-        # return normalized advantages and returns
-        return None  # template placeholder
+        return advantages.detach(), returns.detach()
 
     def compute_gae(
         self,
@@ -104,19 +104,29 @@ class ActorCriticAgent(AbstractAgent):
         next_states: List[np.ndarray],
         dones: List[bool],
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        # TODO: compute values and next_values using your value_fn
+        states_t = torch.stack([torch.from_numpy(s).float() for s in states])
+        next_states_t = torch.stack([torch.from_numpy(s).float() for s in next_states])
+        rewards_t = torch.tensor(rewards, dtype=torch.float32)
+        dones_t = torch.tensor(dones, dtype=torch.float32)
 
-        # TODO: compute deltas: one-step TD errors
+        values = self.value_fn(states_t).squeeze(-1)
+        next_values = self.value_fn(next_states_t).squeeze(-1)
 
-        # TODO: accumulate GAE advantages backwards
+        deltas = rewards_t + self.gamma * next_values * (1.0 - dones_t) - values
 
-        # TODO: compute returns using advantages and values
+        gae = 0.0
+        advantages: List[torch.Tensor] = []
+        for t in reversed(range(len(rewards))):
+            gae = deltas[t] + self.gamma * self.gae_lambda * (1.0 - dones_t[t]) * gae
+            advantages.insert(0, gae)
 
-        # TODO: normalize advantages to zero mean and unit variance and use 1e-8 for numerical stability
+        advantages_t = torch.stack(advantages)
+        returns = advantages_t + values
+        advantages_t = (advantages_t - advantages_t.mean()) / (
+            advantages_t.std(unbiased=False) + 1e-8
+        )
 
-        # TODO: advantages, returns  # replace with actual values (detach both to avoid re-entering the graph)
-
-        return None  # template placeholder
+        return advantages_t.detach(), returns.detach()
 
     def update_agent(
         self,
@@ -133,15 +143,12 @@ class ActorCriticAgent(AbstractAgent):
             adv, ret = self.compute_advantages(list(states), list(rewards))
         elif self.baseline_type == "avg":
             ret = self.compute_returns(list(rewards))
-
-            # TODO: compute advantages by subtracting running return
-            adv = ...  # template placeholder
-
-            # TODO: normalize advantages to zero mean and unit variance and use 1e-8 for numerical stability
-            # (Reminder, use unbiased=False for torch tensors)
-
-            # TODO: update running return using baseline decay
-            # (x = baseline_decay * x + (1 - baseline_decay) * mean return)
+            adv = ret - self.running_return
+            adv = adv / (adv.std(unbiased=False) + 1e-8)
+            self.running_return = (
+                self.baseline_decay * self.running_return
+                + (1.0 - self.baseline_decay) * ret.mean().item()
+            )
         else:
             ret = self.compute_returns(list(rewards))
             adv = (ret - ret.mean()) / (ret.std(unbiased=False) + 1e-8)

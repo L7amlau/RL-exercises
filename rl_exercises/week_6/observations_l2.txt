@@ -1,0 +1,28 @@
+Week 6 - Level 2 Observations (PPO vs Actor-Critic)
+
+Setup
+- Algorithms: ['actor_critic_gae', 'ppo_vanilla', 'ppo_enhanced']
+- Seeds: [0, 1, 2]
+- LunarLander-v3: total_steps=20000, eval_interval=1000, lr_actor=0.0005, lr_critic=0.001, gamma=0.99, gae_lambda=0.95
+- actor_critic_gae: Actor-Critic with GAE baseline (from Level 1)
+- ppo_vanilla: PPO with clipped surrogate, vf_coef=0.5, ent_coef=0.01, NO lr annealing, NO grad clip
+- ppo_enhanced: PPO with clipped surrogate + lr annealing + gradient clipping (max_norm=0.5)
+
+Generated Artifacts
+- results/week_6/l2/level2_metrics.csv
+- results/week_6/l2/level2_final_summary.csv
+- results/week_6/l2/LunarLander_v3_algo_comparison.png
+
+Final-Return Summary (95% CI via rliable)
+- LunarLander-v3:
+  ppo_vanilla: mean=-96.74, CI95=[-133.89, -40.41], std=40.50, n_seeds=3
+  ppo_enhanced: mean=-203.29, CI95=[-306.69, -150.13], std=73.13, n_seeds=3
+  actor_critic_gae: mean=-661.15, CI95=[-950.33, -412.92], std=221.30, n_seeds=3
+  Best: ppo_vanilla (mean -96.74), worst: actor_critic_gae (mean -661.15).
+
+Interpretation
+- PPO's clipped surrogate objective should provide more stable updates than vanilla actor-critic, since it limits how far the policy can change in one step.
+- The lr annealing (linear decay to 0) helps the agent converge more smoothly in later training, since smaller steps reduce oscillation around the optimum.
+- Gradient clipping prevents occasional large gradient updates that could destabilize training, especially early on when the critic is still inaccurate.
+- If ppo_enhanced > ppo_vanilla, it confirms that these implementation tricks from the PPO details blog post actually matter in practice.
+- In this experiment, ppo_enhanced did not outperform ppo_vanilla. This indicates that implementation improvements such as learning-rate annealing and gradient clipping are not universally beneficial. Their effectiveness depends on the training budget and hyperparameter choices. Under the current setup (20000 training steps), the enhanced PPO variant may have become overly conservative, resulting in slower learning.

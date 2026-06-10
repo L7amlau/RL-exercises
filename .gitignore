@@ -147,6 +147,8 @@ results/*
 !results/week_4/**
 !results/week_5/
 !results/week_5/**
+!results/week_6/
+!results/week_6/**
 
 # macOS
 .DS_Store
