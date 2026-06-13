@@ -106,7 +106,7 @@ class RNDPPOAgent(PPOAgent):
         )
 
         # TODO: Optimizer for combined_parameters with learning rate combined_lr (Adam)
-        self.optimizer = ...
+        self.optimizer = optim.Adam(combined_parameters, lr=combined_lr)
 
         # For normalization of observations and intrinsic rewards
         self.obs_rms = RunningMeanStd(shape=(obs_dim,))
@@ -167,11 +167,13 @@ class RNDPPOAgent(PPOAgent):
         Tuple[int, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
             Action, log probability, entropy, extrinsic value, intrinsic value.
         """
-        t = torch.from_numpy(state).float()
+        t = torch.from_numpy(state).float().unsqueeze(0)
         probs = self.policy(t).squeeze(0)
         dist = Categorical(probs)
         action = dist.sample().item()
         value_ext, value_int = self.value_fn(t)
+        value_ext = value_ext.squeeze()
+        value_int = value_int.squeeze()
         return (
             action,
             dist.log_prob(torch.tensor(action)),
@@ -220,30 +222,42 @@ class RNDPPOAgent(PPOAgent):
         rews_ext = torch.tensor(rewards_ext, dtype=torch.float32)
         rews_int = torch.tensor(rewards_int, dtype=torch.float32)
 
-        deltas_ext = ...
-        deltas_int = ...
+        deltas_ext = (
+            rews_ext.view(-1)
+            + self.gamma * next_values_ext.view(-1) * (1.0 - dones.view(-1))
+            - values_ext.view(-1)
+        )
+        deltas_int = (
+            rews_int.view(-1)
+            + self.int_gamma * next_values_int.view(-1)
+            - values_int.view(-1)
+        )
 
         # GAE for extrinsic stream
         advs_ext: List[torch.Tensor] = []
-        A = 0.0
+        A = torch.tensor(0.0)
         for delta, done in zip(reversed(deltas_ext), reversed(dones)):
-            A = ...
+            A = delta + self.gamma * self.gae_lambda * (1.0 - done) * A
+            A = A.squeeze()
             advs_ext.insert(0, A)
-        advs_ext_t = torch.stack(advs_ext)
+        advs_ext_t = torch.stack(advs_ext).squeeze(-1)
 
         # GAE for intrinsic stream (non-episodic: done mask not applied)
         advs_int: List[torch.Tensor] = []
         A = 0.0
         for delta in reversed(deltas_int):
-            A = ...
+            A = delta + self.int_gamma * self.gae_lambda * A
             advs_int.insert(0, A)
-        advs_int_t = torch.stack(advs_int)
+        advs_int_t = torch.stack(advs_int).squeeze(-1)
 
-        returns_ext = ...
-        returns_int = ...
+        returns_ext = advs_ext_t + values_ext
+        returns_int = advs_int_t + values_int
 
         # TODO: Combined advantages weighted by coefficients, then normalize
-        combined_advs = ...
+        combined_advs = self.ext_coef * advs_ext_t + self.int_coef * advs_int_t
+        combined_advs = (combined_advs - combined_advs.mean()) / (
+            combined_advs.std() + 1e-8
+        )
 
         return (
             combined_advs.detach(),
@@ -268,16 +282,16 @@ class RNDPPOAgent(PPOAgent):
             The RND bonus for the state.
         """
         # TODO: extract current state as a tensor
-        state_tensor = ...
+        state_tensor = torch.from_numpy(state).float().unsqueeze(0)
 
         # TODO: compute MSE error between predictor and target embeddings as the bonus
         with torch.no_grad():
-            target_emb = ...
-            predictor_emb = ...
-        error = ...
+            target_emb = self.target_rnd(state_tensor)
+            predictor_emb = self.predictor_rnd(state_tensor)
+        error = F.mse_loss(predictor_emb, target_emb)
 
         # TODO: scale by reward weight and return
-        bonus = ...
+        bonus = error.item()
         return bonus
 
     def update(self, trajectory: List[Any]) -> Tuple[float, float, float, float]:
@@ -304,8 +318,13 @@ class RNDPPOAgent(PPOAgent):
 
         # TODO: compute values and next values for both extrinsic and intrinsic streams without grad
         with torch.no_grad():
-            values_ext, values_int = ...
-            next_values_ext, next_values_int = ...
+            values_ext, values_int = self.value_fn(states)
+            next_values_ext, next_values_int = self.value_fn(next_states)
+
+            values_ext = values_ext.squeeze(-1)
+            values_int = values_int.squeeze(-1)
+            next_values_ext = next_values_ext.squeeze(-1)
+            next_values_int = next_values_int.squeeze(-1)
 
         # TODO: compute combined advantages and returns for extrinsic and intrinsic rewards
         combined_advs, _, _, returns_ext, returns_int = self.compute_gae(
@@ -328,23 +347,38 @@ class RNDPPOAgent(PPOAgent):
         for _ in range(self.epochs):
             for b_states, b_actions, b_oldlogp, b_adv, b_ret_ext, b_ret_int in loader:
                 # TODO: Policy loss (clipped PPO surrogate)
-                probs = ...
-                dist = ...
-                new_logp = ...
-                ratio = ...
-                policy_loss = ...
+                probs = self.policy(b_states)
+                dist = Categorical(probs)
+                new_logp = dist.log_prob(b_actions)
+                ratio = torch.exp(new_logp - b_oldlogp)
+                policy_loss = -torch.min(
+                    ratio * b_adv,
+                    torch.clamp(ratio, 1.0 - self.clip_eps, 1.0 + self.clip_eps)
+                    * b_adv,
+                ).mean()
 
                 # TODO: Dual-head value loss (MSE for both ext and int heads)
-                value_preds_ext, value_preds_int = ...
-                value_loss = ...
+                value_preds_ext, value_preds_int = self.value_fn(b_states)
+                value_preds_ext = value_preds_ext.squeeze(-1)
+                value_preds_int = value_preds_int.squeeze(-1)
+                value_loss = F.mse_loss(value_preds_ext, b_ret_ext) + F.mse_loss(
+                    value_preds_int, b_ret_int
+                )
 
                 # TODO: Entropy loss
-                entropy_loss = ...
+                entropy_loss = -dist.entropy().mean()
 
                 # TODO: RND predictor loss with update_proportion mask
                 # (only a random subset of minibatch transitions updates the predictor)
-                mask = ...
-                rnd_loss = ...
+                mask = torch.rand(len(b_states)) < self.update_proportion
+                rnd_loss = (
+                    F.mse_loss(
+                        self.predictor_rnd(b_states[mask]),
+                        self.target_rnd(b_states[mask]).detach(),
+                    )
+                    if mask.any()
+                    else torch.tensor(0.0)
+                )
 
                 loss = (
                     policy_loss
