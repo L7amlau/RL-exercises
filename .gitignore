@@ -149,6 +149,11 @@ results/*
 !results/week_5/**
 !results/week_6/
 !results/week_6/**
+!results/week_7/
+!results/week_7/**
+
+# week_7 local experiment scripts
+rl_exercises/week_7/run_week7_l1.py
 
 # macOS
 .DS_Store

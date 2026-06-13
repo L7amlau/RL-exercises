@@ -1,0 +1,9 @@
+Environment: LunarLander-v3
+
+We implemented RND-DQN and compared it against the baseline DQN using 3 random seeds.
+
+The learning curves show that the baseline method consistently achieved higher episode rewards than RND-DQN.
+
+For LunarLander-v3, RND seems like isn't a good fit for DQN. The environment already provides dense reward signals, so exploration is not the main bottleneck. The intrinsic reward from RND encourages the agent to visit novel states even when those states are not useful for solving the task. As a result, the agent spends more time exploring and less time exploiting rewarding behaviours.
+
+RND-DQN doesn't perform better than base DQN as expected on LunarLander-v3. The results suggest that novelty-driven exloration is not beneficial in this environment and may even slow down learning due to excessive exploration.

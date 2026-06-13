@@ -8,6 +8,7 @@ import importlib
 
 import gymnasium as gym
 import numpy as np
+import pandas as pd
 import torch
 import torch.optim as optim
 from rl_exercises.agent import AbstractAgent
@@ -110,6 +111,7 @@ class DQNAgent(AbstractAgent):
         """
         super().__init__()
         self.env = env
+        self.seed = seed
         set_seed(env, seed)
 
         obs_space = env.observation_space
@@ -334,6 +336,8 @@ class DQNAgent(AbstractAgent):
         ep_reward = 0.0
         recent_rewards: List[float] = []
         logs: List[Dict[str, float]] = []
+        episode_rewards = []
+        steps = []
 
         for frame in range(1, num_frames + 1):
             action = self.predict_action(state)
@@ -362,6 +366,8 @@ class DQNAgent(AbstractAgent):
             if done:
                 state, _ = self.env.reset()
                 recent_rewards.append(ep_reward)
+                episode_rewards.append(ep_reward)
+                steps.append(frame)
                 avg10 = float(np.mean(recent_rewards[-10:]))
                 logs.append(
                     {
@@ -376,7 +382,13 @@ class DQNAgent(AbstractAgent):
                     print(
                         f"Frame {frame}, AvgReward(10): {avg10:.2f}, ε={self.epsilon():.3f}"
                     )
-
+        df = pd.DataFrame(
+            {
+                "step": steps,
+                "episode_reward": episode_rewards,
+            }
+        )
+        df.to_csv(f"dqn_seed{self.seed}.csv", index=False)
         print("Training complete.")
         return logs
 
