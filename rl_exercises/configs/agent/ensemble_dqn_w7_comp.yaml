@@ -1,0 +1,28 @@
+# @package _global_
+env:
+  name: LunarLander-v3
+
+seed: 0
+
+agent:
+  buffer_capacity: 10000
+  batch_size: 32
+  learning_rate: 0.001
+  gamma: 0.99
+
+  epsilon_start: 1.0
+  epsilon_final: 0.01
+  epsilon_decay: 5000
+
+  target_update_freq: 1000
+  hidden_dims: [64, 64]
+
+  use_prioritized_replay: false
+  use_double_dqn: true
+
+  num_heads: 5
+  ucb_beta: 1.0
+
+train:
+  num_frames: 50000
+  eval_interval: 1000
