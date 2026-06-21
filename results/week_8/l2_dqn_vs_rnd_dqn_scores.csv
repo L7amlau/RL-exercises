@@ -1,0 +1,11 @@
+algorithm,seed,final_avg_reward_10
+DQN,0,224.0
+RND-DQN,0,10.0
+DQN,1,196.3
+RND-DQN,1,12.0
+DQN,2,278.1
+RND-DQN,2,20.1
+DQN,3,192.3
+RND-DQN,3,149.5
+DQN,4,206.1
+RND-DQN,4,89.1

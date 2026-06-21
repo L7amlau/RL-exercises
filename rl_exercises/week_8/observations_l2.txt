@@ -1,0 +1,20 @@
+
+Setup:
+- Algorithms: DQN vs RND-DQN
+- Environment: CartPole-v1
+- Seeds: [0, 1, 2, 3, 4]
+- Aggregation: final average reward over the last 10 episodes of each run
+- Test: two-sided Mann-Whitney U test
+- Significance level: alpha = 0.05
+
+Results:
+- DQN scores: [224.0, 196.3, 278.1, 192.3, 206.1]
+- RND-DQN scores: [10.0, 12.0, 20.1, 149.5, 89.1]
+- U statistic: 25.0000
+- p-value: 0.0079
+
+Conclusion:
+Since p = 0.0079, we reject the null hypothesis at alpha = 0.05.
+
+Notes:
+Each seed was aggregated into one final score before testing. I did not treat individual episodes as independent samples, because episodes from the same training run are correlated.
