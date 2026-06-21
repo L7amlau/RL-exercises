@@ -151,6 +151,11 @@ results/*
 !results/week_6/**
 !results/week_7/
 !results/week_7/**
+!results/week_8/
+!results/week_8/**
+!results/week_8/l1_raw/**
+!results/week_8/l2_raw/**
+!results/week_8/l3_raw/**
 
 # week_7 local experiment scripts
 rl_exercises/week_7/run_week7_l1.py
@@ -164,3 +169,6 @@ rl_exercises/week_7/run_week7_l1.py
 # personal scripts
 plot_reliable.py
 week_3_script.nu
+results/week_8/l1_raw/
+results/week_8/l2_raw/
+results/week_8/l3_raw/
