@@ -2,7 +2,7 @@
 # Hydra configuration for RNDDQNAgent training.
 
 env:
-  name: CartPole-v1
+  name: LunarLander-v3
 
 seed: 0
 
@@ -13,15 +13,15 @@ agent:
   gamma: 0.99
   epsilon_start: 1.0
   epsilon_final: 0.01
-  epsilon_decay: 500
+  epsilon_decay: 5000
   target_update_freq: 1000
 
 rnd:
   hidden_size: 128
   n_layers: 2
   learning_rate: 1e-3   # optimizer lr for the RND predictor
-  update_freq: 1000     # update RND predictor every N steps
-  reward_weight: 0.1    # scale factor applied to raw RND error before adding to reward
+  update_freq: 1     # update RND predictor every N steps
+  reward_weight: 0.01    # scale factor applied to raw RND error before adding to reward
 
 train:
   num_frames: 20000

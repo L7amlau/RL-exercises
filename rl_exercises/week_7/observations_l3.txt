@@ -1,0 +1,15 @@
+For L3, we implemented an ensemble-based DQN exploration method inspired by the paper. The paper uses a distributional ensemble to estimate uncertainty. We implemented a version with multiple Q-value heads on top of a shared feature network.
+
+For each step, the ensemble network outputs Q-values with shape like:
+
+[batch_size, num_heads, num_actoins]
+
+During action selection, we compute mean and standard derivation of Q-values across the ensemble heads. The training policy then uses an upper-confidence-bound style action score:
+
+score(s, a) = mean_Q(s, a) + beta * std_Q(s, a)
+
+We compared DQN, RND-DQN, and EnsembleDQN on LunarLander-v3 for 50000 steps using 3 seeds. The RLiable plot is saved as:
+
+results/week_7/l3_dqn_rnd_ensemble_rliable.png
+
+In these runs, DQN and EnsembleDQN performed clearly better than RND-DQN. RND-DQN showed much larger negative reward drops and stayed below others for most of training. EnsembleDQN was competitive with DQN and sometimes performs better in the middle and later parts of training. In my opinion, EnsembleDQN exploration helped more than RND, but it didn't clearly outperform standard DQN. It means uncertainty-based exploration can be useful, but the implementation is still sensitive to variance across seeds.

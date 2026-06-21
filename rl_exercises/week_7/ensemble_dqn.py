@@ -1,5 +1,5 @@
 """
-Deep Q-Learning implementation.
+Deep Q-Learning with ensemble-based exploration.
 """
 
 from typing import Any, Dict, List, Sequence, Tuple
@@ -13,7 +13,7 @@ import torch
 import torch.optim as optim
 from rl_exercises.agent import AbstractAgent
 from rl_exercises.week_4.buffers import PrioritizedReplayBuffer, ReplayBuffer
-from rl_exercises.week_4.networks import QNetwork
+from torch import nn
 
 try:
     hydra = importlib.import_module("hydra")
@@ -42,14 +42,55 @@ def set_seed(env: gym.Env, seed: int = 0) -> None:
         env.observation_space.seed(seed)
 
 
-class DQNAgent(AbstractAgent):
+class EnsembleQNetwork(nn.Module):
     """
-    Deep Q‐Learning agent with ε‐greedy policy and target network.
+    Q-network with multiple output heads.
 
-    Derives from AbstractAgent by implementing:
-      - predict_action
-      - save / load
-      - update_agent
+    For each state, it returns Q-values from several heads.
+    Output shape: [batch_size, num_heads, num_actions]
+    """
+
+    def __init__(
+        self,
+        obs_dim: int,
+        num_actions: int,
+        hidden_dims: int | Sequence[int] = (64, 64),
+        num_heads: int = 5,
+    ) -> None:
+        super().__init__()
+
+        if isinstance(hidden_dims, int):
+            hidden_dims = (hidden_dims,)
+
+        layers: list[nn.Module] = []
+        input_dim = obs_dim
+
+        for hidden_dim in hidden_dims:
+            layers.append(nn.Linear(input_dim, hidden_dim))
+            layers.append(nn.ReLU())
+            input_dim = hidden_dim
+
+        self.feature = nn.Sequential(*layers)
+        self.heads = nn.ModuleList(
+            [nn.Linear(input_dim, num_actions) for _ in range(num_heads)]
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        features = self.feature(x)
+        q_values = [head(features) for head in self.heads]
+        return torch.stack(q_values, dim=1)
+
+
+class EnsembleDQNAgent(AbstractAgent):
+    """
+    Deep Q-Learning agent with an ensemble of Q-heads.
+
+    The ensemble estimates epistemic uncertainty from disagreement between
+    heads. During training, actions are selected with a UCB-style score:
+
+        mean_Q(s, a) + ucb_beta * std_Q(s, a)
+
+    Evaluation uses only mean_Q(s, a).
     """
 
     def __init__(
@@ -64,6 +105,8 @@ class DQNAgent(AbstractAgent):
         epsilon_decay: int = 500,
         target_update_freq: int = 1000,
         hidden_dims: int | Sequence[int] = (64, 64),
+        num_heads: int = 5,
+        ucb_beta: float = 1.0,
         use_prioritized_replay: bool = False,
         prio_alpha: float = 0.6,
         prio_beta_start: float = 0.4,
@@ -72,7 +115,7 @@ class DQNAgent(AbstractAgent):
         seed: int = 0,
     ) -> None:
         """
-        Initialize replay buffer, Q‐networks, optimizer, and hyperparameters.
+        Initialize replay buffer, ensemble Q-networks, optimizer, and hyperparameters.
 
         Parameters
         ----------
@@ -81,21 +124,25 @@ class DQNAgent(AbstractAgent):
         buffer_capacity : int
             Max experiences stored.
         batch_size : int
-            Mini‐batch size for updates.
+            Mini-batch size for updates.
         lr : float
             Learning rate.
         gamma : float
             Discount factor.
         epsilon_start : float
-            Initial ε for exploration.
+            Initial epsilon for random exploration.
         epsilon_final : float
-            Final ε.
+            Final epsilon for random exploration.
         epsilon_decay : int
             Exponential decay parameter.
         target_update_freq : int
-            How many updates between target‐network syncs.
+            How many updates between target-network syncs.
         hidden_dims : int or sequence of int
-            Hidden layer widths (controls depth/width of MLP).
+            Hidden layer widths.
+        num_heads : int
+            Number of Q-heads in the ensemble.
+        ucb_beta : float
+            Strength of uncertainty bonus during action selection.
         use_prioritized_replay : bool
             Use prioritized replay instead of uniform replay sampling.
         prio_alpha : float
@@ -117,16 +164,29 @@ class DQNAgent(AbstractAgent):
         obs_space = env.observation_space
         action_space = env.action_space
         if not isinstance(obs_space, gym.spaces.Box):
-            raise ValueError("DQNAgent expects a Box observation space.")
+            raise ValueError("EnsembleDQNAgent expects a Box observation space.")
         if not isinstance(action_space, gym.spaces.Discrete):
-            raise ValueError("DQNAgent expects a Discrete action space.")
+            raise ValueError("EnsembleDQNAgent expects a Discrete action space.")
 
         obs_dim = int(obs_space.shape[0])
         n_actions = int(action_space.n)
 
-        # main Q‐network and frozen target
-        self.q = QNetwork(obs_dim, n_actions, hidden_dims=hidden_dims)
-        self.target_q = QNetwork(obs_dim, n_actions, hidden_dims=hidden_dims)
+        self.num_heads = int(num_heads)
+        self.ucb_beta = float(ucb_beta)
+
+        # main ensemble Q-network and frozen target ensemble
+        self.q = EnsembleQNetwork(
+            obs_dim,
+            n_actions,
+            hidden_dims=hidden_dims,
+            num_heads=self.num_heads,
+        )
+        self.target_q = EnsembleQNetwork(
+            obs_dim,
+            n_actions,
+            hidden_dims=hidden_dims,
+            num_heads=self.num_heads,
+        )
         self.target_q.load_state_dict(self.q.state_dict())
 
         self.optimizer = optim.Adam(self.q.parameters(), lr=lr)
@@ -152,7 +212,7 @@ class DQNAgent(AbstractAgent):
         self.prio_beta_frames = int(max(1, prio_beta_frames))
         self.use_double_dqn = bool(use_double_dqn)
 
-        self.total_steps = 0  # environment interaction steps (for ε decay)
+        self.total_steps = 0  # environment interaction steps (for epsilon decay)
         self.update_steps = 0  # gradient updates (for target net sync)
 
     def current_beta(self) -> float:
@@ -161,12 +221,12 @@ class DQNAgent(AbstractAgent):
 
     def epsilon(self) -> float:
         """
-        Compute current ε by exponential decay.
+        Compute current epsilon by exponential decay.
 
         Returns
         -------
         float
-            Exploration rate.
+            Random exploration rate.
         """
         return float(
             self.epsilon_final
@@ -181,7 +241,10 @@ class DQNAgent(AbstractAgent):
         evaluate: bool = False,
     ) -> int:
         """
-        Choose action via ε‐greedy (or purely greedy in eval mode).
+        Choose an action.
+
+        In training mode, this uses epsilon-random exploration plus ensemble UCB.
+        In evaluation mode, this uses the ensemble mean only.
 
         Parameters
         ----------
@@ -190,13 +253,12 @@ class DQNAgent(AbstractAgent):
         info : dict
             Gym info dict (unused here).
         evaluate : bool
-            If True, always pick argmax(Q).
+            If True, always pick argmax(mean_Q).
 
         Returns
         -------
         action : int
-        info_out : dict
-            Empty dict (compatible with interface).
+            Selected action.
         """
         _ = info
         t = torch.tensor(state, dtype=torch.float32).unsqueeze(0)
@@ -205,8 +267,16 @@ class DQNAgent(AbstractAgent):
             return int(self.env.action_space.sample())
 
         with torch.no_grad():
-            qvals = self.q(t)
-        action = int(torch.argmax(qvals, dim=1).item())
+            q_ensemble = self.q(t).squeeze(0)  # [num_heads, num_actions]
+            q_mean = q_ensemble.mean(dim=0)
+
+            if evaluate:
+                action_scores = q_mean
+            else:
+                q_std = q_ensemble.std(dim=0, unbiased=False)
+                action_scores = q_mean + self.ucb_beta * q_std
+
+        action = int(torch.argmax(action_scores).item())
         return action
 
     def save(self, path: str) -> None:
@@ -222,6 +292,8 @@ class DQNAgent(AbstractAgent):
             {
                 "parameters": self.q.state_dict(),
                 "optimizer": self.optimizer.state_dict(),
+                "num_heads": self.num_heads,
+                "ucb_beta": self.ucb_beta,
             },
             path,
         )
@@ -237,6 +309,7 @@ class DQNAgent(AbstractAgent):
         """
         checkpoint = torch.load(path)
         self.q.load_state_dict(checkpoint["parameters"])
+        self.target_q.load_state_dict(self.q.state_dict())
         self.optimizer.load_state_dict(checkpoint["optimizer"])
 
     def update_agent(
@@ -248,13 +321,13 @@ class DQNAgent(AbstractAgent):
 
         Parameters
         ----------
-        training_batch : list of transitions
-            Each is (state, action, reward, next_state, done, info).
+        training_batch : list of transitions or prioritized replay dict
+            Each transition is (state, action, reward, next_state, done, info).
 
         Returns
         -------
         loss_val : float
-            MSE loss value.
+            Loss value.
         """
         # unpack
         sample_weights: np.ndarray | None = None
@@ -270,24 +343,44 @@ class DQNAgent(AbstractAgent):
 
         states, actions, rewards, next_states, dones, _ = zip(*batch_for_update)
         s = torch.tensor(np.array(states), dtype=torch.float32)
-        a = torch.tensor(np.array(actions), dtype=torch.int64).unsqueeze(1)
+        a = torch.tensor(np.array(actions), dtype=torch.int64)
         r = torch.tensor(np.array(rewards), dtype=torch.float32)
         s_next = torch.tensor(np.array(next_states), dtype=torch.float32)
         mask = torch.tensor(np.array(dones), dtype=torch.float32)
 
-        # current Q estimates for taken actions
-        pred = self.q(s).gather(1, a).squeeze(1)
+        # Current Q estimates for taken actions.
+        # q_values shape: [batch_size, num_heads, num_actions]
+        q_values = self.q(s)
+        action_index = a[:, None, None].expand(-1, self.num_heads, 1)
+        pred = q_values.gather(dim=2, index=action_index).squeeze(-1)
+        # pred shape: [batch_size, num_heads]
 
         with torch.no_grad():
+            target_q_values = self.target_q(s_next)
+
             if self.use_double_dqn:
-                next_actions = self.q(s_next).argmax(dim=1, keepdim=True)
-                next_q = self.target_q(s_next).gather(1, next_actions).squeeze(1)
+                # Select the next action by the online ensemble mean.
+                online_next_q_values = self.q(s_next)
+                online_next_mean = online_next_q_values.mean(dim=1)
+                next_actions = online_next_mean.argmax(dim=1)
+                next_action_index = next_actions[:, None, None].expand(
+                    -1,
+                    self.num_heads,
+                    1,
+                )
+                next_q = target_q_values.gather(
+                    dim=2,
+                    index=next_action_index,
+                ).squeeze(-1)
             else:
-                next_q = self.target_q(s_next).max(dim=1).values
-            target = r + (1.0 - mask) * self.gamma * next_q
+                # Each head uses its own target max.
+                next_q = target_q_values.max(dim=2).values
+
+            target = r[:, None] + (1.0 - mask[:, None]) * self.gamma * next_q
 
         td_errors = target - pred
-        per_sample_loss = torch.square(td_errors)
+        per_sample_loss = torch.square(td_errors).mean(dim=1)
+
         if sample_weights is not None:
             w = torch.tensor(sample_weights, dtype=torch.float32)
             loss = (w * per_sample_loss).mean()
@@ -304,7 +397,9 @@ class DQNAgent(AbstractAgent):
             and sample_indices is not None
             and isinstance(self.buffer, PrioritizedReplayBuffer)
         ):
-            new_priorities = np.abs(td_errors.detach().cpu().numpy()) + 1e-6
+            new_priorities = (
+                torch.abs(td_errors).mean(dim=1).detach().cpu().numpy() + 1e-6
+            )
             self.buffer.update_priorities(sample_indices, new_priorities)
 
         # occasionally sync target network
@@ -380,29 +475,33 @@ class DQNAgent(AbstractAgent):
                 # logging
                 if len(recent_rewards) % max(1, int(eval_interval)) == 0:
                     print(
-                        f"Frame {frame}, AvgReward(10): {avg10:.2f}, ε={self.epsilon():.3f}"
+                        f"Frame {frame}, AvgReward(10): {avg10:.2f}, "
+                        f"epsilon={self.epsilon():.3f}, ucb_beta={self.ucb_beta:.3f}"
                     )
+
         df = pd.DataFrame(
             {
                 "step": steps,
                 "episode_reward": episode_rewards,
             }
         )
-        df.to_csv(f"dqn_seed{self.seed}.csv", index=False)
+        df.to_csv(f"ensemble_dqn_seed{self.seed}.csv", index=False)
         print("Training complete.")
         return logs
 
 
 if hydra is not None:
 
-    @hydra.main(config_path="../configs/agent/", config_name="dqn", version_base="1.1")
+    @hydra.main(
+        config_path="../configs/agent/", config_name="ensemble_dqn", version_base="1.1"
+    )
     def _main(cfg: Any) -> None:
         # 1) build env
         env = gym.make(cfg.env.name)
         set_seed(env, cfg.seed)
 
         # 2/3) instantiate & train
-        agent = DQNAgent(
+        agent = EnsembleDQNAgent(
             env=env,
             buffer_capacity=int(cfg.agent.buffer_capacity),
             batch_size=int(cfg.agent.batch_size),
@@ -413,6 +512,8 @@ if hydra is not None:
             epsilon_decay=int(cfg.agent.epsilon_decay),
             target_update_freq=int(cfg.agent.target_update_freq),
             hidden_dims=list(cfg.agent.hidden_dims),
+            num_heads=int(cfg.agent.get("num_heads", 5)),
+            ucb_beta=float(cfg.agent.get("ucb_beta", 1.0)),
             use_prioritized_replay=bool(cfg.agent.get("use_prioritized_replay", False)),
             prio_alpha=float(cfg.agent.get("prio_alpha", 0.6)),
             prio_beta_start=float(cfg.agent.get("prio_beta_start", 0.4)),
@@ -433,7 +534,9 @@ if hydra is not None:
 else:
 
     def main() -> None:
-        raise ModuleNotFoundError("hydra-core is required to run dqn.py main().")
+        raise ModuleNotFoundError(
+            "hydra-core is required to run ensemble_dqn.py main()."
+        )
 
 
 if __name__ == "__main__":
