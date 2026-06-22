@@ -1,0 +1,5 @@
+At 1,000 and 10,000 steps, highly similar trajectories show the agent drifting downwards and to the right, reflecting a lack of effective control.
+
+At 20,000 steps, a marked shift occurs: the agent no longer descends towards the landing pad, but instead moves upwards and to the right. This suggests that, although the exploration mechanism has altered the behavioural distribution, the outcome has not yet aligned with the task objective.
+
+Ultimately, these snapshots demonstrate that NoveID facilitates exploration of the state space; however, in LunarLander-v3, this does not result in improved landing behaviour due to a misalignment between novelty and task rewards.

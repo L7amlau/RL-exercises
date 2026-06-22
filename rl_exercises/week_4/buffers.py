@@ -59,6 +59,9 @@ class ReplayBuffer(AbstractBuffer):
         """
         if len(self.states) >= self.capacity:
             # Evict oldest transition to keep strict FIFO behavior.
+            # TODO: pop the oldest element off each list (states, actions, …, infos)
+            # pop oldest
+            # return
             self.states.pop(0)
             self.actions.pop(0)
             self.rewards.pop(0)
@@ -88,6 +91,8 @@ class ReplayBuffer(AbstractBuffer):
         -------
         List of transitions as (state, action, reward, next_state, done, info).
         """
+        # TODO: randomly choose `batch_size` unique indices from [0, len(self.states))
+        # idx = ...
         sample_size = min(batch_size, len(self.states))
         idxs = np.random.choice(len(self.states), size=sample_size, replace=False)
         return [
