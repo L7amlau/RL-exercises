@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Tuple
 import gymnasium as gym
 import hydra
 import numpy as np
+import pandas as pd
 import torch
 from omegaconf import DictConfig
 from rl_exercises.week_4.dqn import DQNAgent, set_seed
@@ -102,11 +103,23 @@ class RNDDQNAgent(DQNAgent):
         output_dim = rnd_hidden_size
 
         # Target network is frozen, predictor is trained to match it
-        self.target_network_rnd = ...
-        self.predictor_network_rnd = ...
+        self.target_network_rnd = TargetNetwork(
+            obs_dim=obs_dim,
+            output_dim=output_dim,
+            hidden_dim=rnd_hidden_size,
+            n_layers=rnd_n_layers,
+        )
+        self.predictor_network_rnd = PredictorNetwork(
+            obs_dim=obs_dim,
+            output_dim=output_dim,
+            hidden_dim=rnd_hidden_size,
+            n_layers=rnd_n_layers,
+        )
 
         # Optimizer for the predictor network
-        self.rnd_optimizer = ...
+        self.rnd_optimizer = torch.optim.Adam(
+            self.predictor_network_rnd.parameters(), lr=rnd_lr
+        )
 
     def update_rnd(
         self, training_batch: List[Tuple[Any, Any, float, Any, bool, Dict]]
@@ -121,14 +134,14 @@ class RNDDQNAgent(DQNAgent):
         """
         # TODO: get next_states from the batch
         _, _, _, next_states, _, _ = zip(*training_batch)
-        next_states = ...
+        next_states = torch.tensor(np.array(next_states), dtype=torch.float32)
 
         # TODO: compute the MSE between target and predictor embeddings
         with torch.no_grad():
-            target_embeddings = ...
+            target_embeddings = self.target_network_rnd(next_states)
         self.rnd_optimizer.zero_grad()
-        predictor_embeddings = ...
-        mse = ...
+        predictor_embeddings = self.predictor_network_rnd(next_states)
+        mse = nn.functional.mse_loss(predictor_embeddings, target_embeddings)
 
         # TODO: update the RND network
         mse.backward()
@@ -150,16 +163,16 @@ class RNDDQNAgent(DQNAgent):
             The RND bonus for the state.
         """
         # TODO: extract current state as a tensor
-        state_tensor = ...
+        state_tensor = torch.tensor(state, dtype=torch.float32)
 
         # TODO: compute MSE error between predictor and target embeddings as the bonus
         with torch.no_grad():
-            target_embedding = ...
-            predictor_embedding = ...
-        error = ...
+            target_embedding = self.target_network_rnd(state_tensor)
+            predictor_embedding = self.predictor_network_rnd(state_tensor)
+        error = nn.functional.mse_loss(predictor_embedding, target_embedding)
 
         # TODO: scale by reward weight and return
-        bonus = ...
+        bonus = self.rnd_reward_weight * error.item()
         return bonus
 
     def train(self, num_frames: int, eval_interval: int = 1000) -> None:
@@ -180,15 +193,19 @@ class RNDDQNAgent(DQNAgent):
         steps = []
 
         for frame in range(1, num_frames + 1):
+            self.total_steps += 1
             action = self.predict_action(state)
             next_state, reward, done, truncated, _ = self.env.step(action)
 
             # TODO: apply RND bonus
             # (TODO just the RND bonus, the other part of training loop is provided)
-            reward += ...
+            rnd_bonus = self.get_rnd_bonus(next_state)
+            total_reward = reward + rnd_bonus
 
             # store and step
-            self.buffer.add(state, action, reward, next_state, done or truncated, {})
+            self.buffer.add(
+                state, action, total_reward, next_state, done or truncated, {}
+            )
             state = next_state
             ep_reward += reward
 
@@ -212,7 +229,13 @@ class RNDDQNAgent(DQNAgent):
                     print(
                         f"Frame {frame}, AvgReward(10): {avg:.2f}, ε={self.epsilon():.3f}"
                     )
-
+        df = pd.DataFrame(
+            {
+                "step": steps,
+                "episode_reward": episode_rewards,
+            }
+        )
+        df.to_csv(f"rnd_dqn_seed{self.seed}.csv", index=False)
         print("Training complete.")
 
 
