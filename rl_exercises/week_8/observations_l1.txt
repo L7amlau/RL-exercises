@@ -1,0 +1,40 @@
+Setup
+- Algorithm: DQN
+- Environment: CartPole-v1
+- Training frames per run: 20000
+- Large seed set: 30 seeds (0-29)
+- Medium seed set: 10 seeds (0-9)
+- Low seed sets: {0, 1, 2}, {10, 11, 12}, {20, 21, 22}
+
+Metrics
+For each seed set we computed:
+- Mean reward
+- Median reward
+- Interquartile Mean (IQM)
+- Standard deviation (Std)
+- Standard error (SE)
+- 95% CI
+
+Results:
+
+=== Seed group comparison ===
+           group   n    mean  median     iqm     std     se  ci_low  ci_high
+0      low_0_1_2   3  236.47   224.0  236.47   47.64  27.50  182.56   290.38
+1   low_10_11_12   3  253.93   268.3  253.93   33.73  19.47  215.77   292.10
+2   low_20_21_22   3  252.47   220.9  252.47  116.99  67.54  120.08   384.85
+3  medium_0_to_9  10  186.79   185.9  185.70   54.31  17.17  153.13   220.45
+4  large_0_to_29  30  206.00   207.6  202.59   55.72  10.17  186.06   225.94
+
+Observations
+
+1. Influence of the number of seeds
+
+The number of seeds heavily influences the outcome of the assessment. Different low-seed groups produced different performance, increasing the number of seeds produced more stable results and narrower confidence intervals.
+
+2. Influence of the evaluation metric
+
+Mean, median, and IQM showed similar trends over time, but the mean was usually slightly higher. This suggests that a few strong seeds increased the average performance. IQM was more robust to such effects and therefore provided a more reliable estimate.
+
+3. Interpretation of the results
+
+Using only a small number of seeds can lead to misleading conclusions about algorithm performance. More seeds bring a more trustworthy result of performance of the algorithm.
