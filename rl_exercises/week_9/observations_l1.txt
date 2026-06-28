@@ -1,0 +1,9 @@
+1.1 Sample Efficiency
+
+PPO reached 80% of its final return at around 4k real environment steps, while Dyna-PPO reached the same threshold only at around 14k steps. Therefore, Dyna-PPO did not improve sample efficiency in this experiment. A clear initial model learning penalty is observed, as Dyna-PPO performs worse than PPO during the early training stage.
+
+1.2 Model Prediction Accuracy
+
+The one-step prediction MSE remains low (around 10^{-4}) throughout training, indicating that the dynamics model learns stable one-step predictions. However, Dyna-PPO does not consistently outperform PPO, so no clear MSE threshold can be identified.
+
+The multi-step prediction error increases rapidly with the rollout horizon due to error accumulation. The late-stage model has significantly lower errors than the early-stage model, but the error still grows as the horizon increases. This suggests using a relatively short imagination horizon (e.g., 5–10 steps).

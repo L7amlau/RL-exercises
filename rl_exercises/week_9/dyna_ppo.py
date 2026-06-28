@@ -26,6 +26,7 @@ import hydra
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 from omegaconf import DictConfig
 from rl_exercises.week_6.ppo import PPOAgent, set_seed
@@ -150,17 +151,29 @@ class DynaPPOAgent(PPOAgent):
         total_state_loss = 0.0
         total_reward_loss = 0.0
 
-        # TODO: Loop over multiple epochs for model training
+        self.model.train()
         for _ in range(self.model_epochs):
             # Sample a minibatch of real transitions (s, a, r, s')
             batch = random.sample(self.real_buffer, self.model_batch_size)
             states, actions, rewards, next_states, _ = zip(*batch)
 
-            # TODO: Predict next state delta and reward using the model
-            # TODO: Compute loss for state prediction and reward prediction
-            loss_s = ...
-            loss_r = ...
-            loss = ...
+            states_t = torch.as_tensor(np.asarray(states), dtype=torch.float32).reshape(
+                self.model_batch_size, -1
+            )
+            next_states_t = torch.as_tensor(
+                np.asarray(next_states), dtype=torch.float32
+            ).reshape(self.model_batch_size, -1)
+            actions_t = torch.as_tensor(actions, dtype=torch.long)
+            actions_oh = F.one_hot(
+                actions_t, num_classes=self.env.action_space.n
+            ).float()
+            rewards_t = torch.as_tensor(rewards, dtype=torch.float32)
+
+            delta_pred, reward_pred = self.model(states_t, actions_oh)
+            target_delta = next_states_t - states_t
+            loss_s = F.mse_loss(delta_pred, target_delta)
+            loss_r = F.mse_loss(reward_pred, rewards_t)
+            loss = loss_s + loss_r
 
             self.model_opt.zero_grad()
             loss.backward()
@@ -194,17 +207,29 @@ class DynaPPOAgent(PPOAgent):
                 "reward_mse": 0.0,
             }
 
-        # TODO: Sample a batch of transitions from the replay buffer
-        val_batch = ...
+        val_batch = random.sample(self.real_buffer, num_samples)
         states, actions, rewards, next_states, _ = zip(*val_batch)
 
-        # TODO: Compute MSE (L2) and MAE (L1) for both state and reward predictions
+        states_t = torch.as_tensor(np.asarray(states), dtype=torch.float32).reshape(
+            num_samples, -1
+        )
+        next_states_t = torch.as_tensor(
+            np.asarray(next_states), dtype=torch.float32
+        ).reshape(num_samples, -1)
+        actions_t = torch.as_tensor(actions, dtype=torch.long)
+        actions_oh = F.one_hot(actions_t, num_classes=self.env.action_space.n).float()
+        rewards_t = torch.as_tensor(rewards, dtype=torch.float32)
+
+        was_training = self.model.training
+        self.model.eval()
         with torch.no_grad():
-            # Calculate metrics
-            state_mse = ...
-            reward_mse = ...
-            state_mae = ...
-            reward_mae = ...
+            delta_pred, reward_pred = self.model(states_t, actions_oh)
+            next_states_pred = states_t + delta_pred
+            state_mse = F.mse_loss(next_states_pred, next_states_t).item()
+            reward_mse = F.mse_loss(reward_pred, rewards_t).item()
+            state_mae = F.l1_loss(next_states_pred, next_states_t).item()
+            reward_mae = F.l1_loss(reward_pred, rewards_t).item()
+        self.model.train(was_training)
 
         return {
             "state_mse": state_mse,
@@ -232,20 +257,20 @@ class DynaPPOAgent(PPOAgent):
             s = random.choice(self.real_buffer)[0]
             imag_traj: List[Any] = []
 
-            # TODO: Simulate a trajectory using the model
+            # Simulate a short trajectory using the learned model.
             for step in range(self.imag_horizon):
-                # TODO: Predict action, log-probability, entropy, and value from the PPO policy
-                action, logp, ent, val = ...
+                action, logp, ent, val = self.predict(s)
 
-                # TODO: Prepare model input tensors
-                a_oh = ...  # noqa: F841
-                s_t = ...  # noqa: F841
+                a_oh = F.one_hot(
+                    torch.tensor([action]), num_classes=self.env.action_space.n
+                ).float()
+                s_t = torch.as_tensor(s, dtype=torch.float32).reshape(1, -1)
 
-                # TODO: Predict next state delta and reward
                 with torch.no_grad():  # Don't track gradients during imagination
-                    delta, r_pred = ...
-                    s2 = ...
-                    r_val = ...
+                    delta, r_pred = self.model(s_t, a_oh)
+                    s2 = (s_t + delta).squeeze(0).cpu().numpy().reshape(np.shape(s))
+                    s2 = s2.astype(np.float32, copy=False)
+                    r_val = float(r_pred.item())
 
                 # Add some termination probability to make rollouts more realistic
                 done_prob = 0.05  # 5% chance of termination per step
@@ -419,10 +444,9 @@ class DynaPPOAgent(PPOAgent):
             real_traj: List[Any] = []
             episode_steps = 0
 
-            # TODO: Collect one real trajectory (episode)
             while not done and self.real_steps < total_steps:
-                action, logp, ent, val = ...
-                next_state, reward, term, trunc, _ = ...
+                action, logp, ent, val = self.predict(state)
+                next_state, reward, term, trunc, _ = self.env.step(action)
                 done = term or trunc
                 real_traj.append(
                     (state, action, logp, ent, reward, float(done), next_state)
@@ -463,19 +487,19 @@ class DynaPPOAgent(PPOAgent):
 
             self.total_episodes += 1
 
-            # TODO: Perform PPO update on real transitions
-            policy_loss, value_loss, entropy_loss = ...
+            policy_loss, value_loss, entropy_loss = self.update(real_traj)
             last_return = sum(r for *_, r, _, _ in real_traj)
 
             # 2) Model-based steps if enabled
             model_state_loss, model_reward_loss = 0.0, 0.0
             imag_policy_loss, imag_value_loss, imag_entropy_loss = 0.0, 0.0, 0.0
 
-            # TODO: If using model, train it and perform imagined updates
             if self.use_model:
                 self.store_real(real_traj)
-                model_state_loss, model_reward_loss = ...
-                imag_policy_loss, imag_value_loss, imag_entropy_loss = ...
+                model_state_loss, model_reward_loss = self.train_model()
+                imag_policy_loss, imag_value_loss, imag_entropy_loss = (
+                    self.imagine_and_update()
+                )
 
             # Unified logging with step tracking
             stats = self.get_step_statistics()
