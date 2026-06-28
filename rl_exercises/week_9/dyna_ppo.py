@@ -32,6 +32,18 @@ from omegaconf import DictConfig
 from rl_exercises.week_6.ppo import PPOAgent, set_seed
 
 
+def corrupt_model(
+    delta: torch.Tensor, reward: torch.Tensor, sigma: float
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Add Gaussian noise to model outputs for failure-mode experiments."""
+    if sigma <= 0.0:
+        return delta, reward
+    return (
+        delta + torch.randn_like(delta) * sigma,
+        reward + torch.randn_like(reward) * sigma,
+    )
+
+
 class DynamicsModel(nn.Module):
     """
     Dynamics model predicting next-state deltas and rewards given state and action.
@@ -82,6 +94,7 @@ class DynaPPOAgent(PPOAgent):
         imag_horizon (int): Length of imagined rollout trajectories.
         imag_batches (int): Number of imagined trajectories per real update.
         max_buffer_size (int): Maximum size of the real transition buffer.
+        model_noise_std (float): Noise applied to model outputs during imagination.
         **ppo_kwargs: Passed through to the PPOAgent constructor.
     """
 
@@ -95,6 +108,7 @@ class DynaPPOAgent(PPOAgent):
         imag_horizon: int = 5,
         imag_batches: int = 20,
         max_buffer_size: int = 100000,
+        model_noise_std: float = 0.0,
         **ppo_kwargs,
     ):
         super().__init__(env, **ppo_kwargs)
@@ -119,6 +133,7 @@ class DynaPPOAgent(PPOAgent):
             self.model_batch_size = model_batch_size
             self.imag_horizon = imag_horizon
             self.imag_batches = imag_batches
+            self.model_noise_std = model_noise_std
 
             # Replay buffer for real transitions
             self.real_buffer: List[Tuple[np.ndarray, int, float, np.ndarray, bool]] = []
@@ -268,6 +283,7 @@ class DynaPPOAgent(PPOAgent):
 
                 with torch.no_grad():  # Don't track gradients during imagination
                     delta, r_pred = self.model(s_t, a_oh)
+                    delta, r_pred = corrupt_model(delta, r_pred, self.model_noise_std)
                     s2 = (s_t + delta).squeeze(0).cpu().numpy().reshape(np.shape(s))
                     s2 = s2.astype(np.float32, copy=False)
                     r_val = float(r_pred.item())
@@ -558,6 +574,7 @@ def main(cfg: DictConfig) -> None:
         imag_horizon=cfg.agent.imag_horizon,
         imag_batches=cfg.agent.imag_batches,
         max_buffer_size=cfg.agent.max_buffer_size,
+        model_noise_std=cfg.agent.get("model_noise_std", 0.0),
     )
 
     # Load checkpoint if specified

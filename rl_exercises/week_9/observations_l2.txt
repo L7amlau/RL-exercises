@@ -1,0 +1,15 @@
+2.1 Hyperparameter Sensitivity
+
+The imagination horizon has a clear impact on performance. In this experiment, a horizon of 3 achieved the highest final return, while horizons 1 and 10 performed substantially worse. Very short horizons provide limited planning benefit, whereas longer horizons accumulate model prediction errors. This demonstrates the trade-off between planning depth and compounding model error.
+
+Among the three regimes, the Conservative setting achieved the best sample efficiency, followed by Balanced, while Aggressive performed the worst. Increasing the number of model updates and imagined batches did not improve learning and instead appeared to amplify model errors.
+
+The replay-buffer size affects both policy performance and model accuracy. The smallest buffer (1,000) produced the highest final return, while larger buffers did not consistently improve results. This suggests that using too much stale data can reduce the quality of the learned dynamics model and hurt policy learning.
+
+2.2 Distribution Shift
+
+The state-visit histograms show that the state distribution changes during training. The dynamics model consistently achieves lower prediction error on old states than on newly visited states, especially in the later stages of training. This indicates that model accuracy degrades on fresh states due to distribution shift. As the mismatch between the replay buffer and the current policy grows, the cost of maintaining an accurate dynamics model can outweigh its benefit.
+
+2.3 Failure-mode Analysis
+
+Adding Gaussian noise to the model outputs generally reduces policy performance, although the results exhibit noticeable variance across seeds. Larger noise levels tend to produce lower returns, showing that Dyna-PPO is sensitive to model prediction quality. This experiment highlights that inaccurate imagined transitions can negatively affect policy learning.

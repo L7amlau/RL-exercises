@@ -24,6 +24,7 @@ agent:
   imag_horizon: 5           # Horizon for imagined trajectories
   imag_batches: 10          # Number of batches for imagined updates
   max_buffer_size: 10000    # Size of the replay buffer for imagined experiences
+  model_noise_std: 0.0      # Gaussian output noise for Level 2 failure analysis
 
 train:
   total_steps: 15000        # Total training steps
