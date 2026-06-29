@@ -1,0 +1,23 @@
+Week 3 - Level 2 Observations: SARSA vs. Q-Learning on MarsRover
+
+Setup
+- training_steps=20000, eval_every_n_steps=2000, n_eval_episodes=30
+- alpha=0.1, gamma=0.99, epsilon=0.1
+- seeds: 0, 1, 2
+
+Results (final eval reward)
+- SARSA: 9.0, 90.0, 50.0 (mean 49.67)
+- Q-Learning: 90.0, 90.0, 9.0 (mean 63.00)
+
+Observations
+1) Both methods can learn high-return behavior, but both are highly seed-sensitive.
+2) Q-Learning performed better on average in this setup.
+3) SARSA was often more conservative and showed slower/less stable improvement in some seeds.
+
+Interpretation
+- SARSA is on-policy (update uses the actually chosen next action).
+- Q-Learning is off-policy (update uses max over next-state actions), which can speed up value propagation.
+- Under epsilon-greedy exploration and sparse useful trajectories, high variance across seeds is expected.
+
+Conclusion
+Q-Learning is stronger on average here, but neither method is fully stable. Multi-seed evaluation is necessary for reliable conclusions.
